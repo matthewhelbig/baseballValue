@@ -1,0 +1,13 @@
+---
+title: "Baseball Value"
+author: "Matthew Helbig"
+date: "2019-09-28"
+output: html_document
+---
+
+The goal of this project is to identify the attributes of the players with the most value and the least value,
+as well as predicting which players will have the most and least value in the future.
+
+The first step we'll take is identify which datasets we'll be working with. The Lahman Database has a lot of good information that we'll need, namely Player Value data, salary, and dates of birth. 
+
+We'll download that from <http://www.seanlahman.com/baseball-archive/statistics/>
