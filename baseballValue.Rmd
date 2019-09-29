@@ -1,8 +1,10 @@
 ---
 title: "Baseball Value"
 author: "Matthew Helbig"
-date: "2019-09-28"
-output: html_document
+date: '2019-09-28'
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 #Introduction
@@ -24,7 +26,7 @@ Once the Lahman database is all settled in its own schema, we want to start to w
 
 #Talking to our Database
 
-The first thing you'll do is make sure that the RMySQL package is installed. This is as simple as calling "install.packages("RMySQL")" once.
+The first thing you'll do is make sure that the RMySQL package is installed. This is as simple as calling **install.packages("RMySQL")** once.
 
 Next we'll load up our RMySQL library and get to work.
 ```{r}
@@ -34,7 +36,52 @@ library(RMySQL)
 ```{r, include= FALSE}
 mydb = dbConnect(MySQL(), user='root', password='doorknob18pillow', dbname='Lahman2016', host='127.0.0.1')
 ```
+You'll need to define your new database object, called "mydb" here, using the following template:
 
+**mydb = dbConnect(MySQL(), user='user', password='password', dbname='dbname', host='host')**.
+
+
+Then we'll run a quick command to look at the different tables inside the dataset we've loaded up.
 ```{r}
 dbListTables(mydb)
 ```
+
+So the three that we're most interested in right now are "Batting," "Pitching," and "Salaries." The database has a ton of information that's interesting, but ultimately not super useful for our experiment. We're going to be mostly concerned with salary information from 2006 to 2016, since a lot of salary data before 2006 is incomplete and we're going to be running some predictive models on 2017 and 2018 data later.
+
+We'll need to create a new table in SQL based on our criteria of only needing 2006 and later (this database ends in 2016).
+
+```{sql, eval = FALSE}
+CREATE TABLE Batting_post_2006
+LIKE Batting
+```
+
+Now we've created a table with the same containers as our Batting table, and now we need to load the data into those containers.
+
+```{sql, eval = FALSE}
+INSERT INTO Batting_post_2006
+SELECT *
+FROM Batting;
+```
+
+Now we're going to trim our data from our new table in order to limit ourselves to only 2006 to 2016. This is where SQL is beneficial, since our original dataset of "Batting" is complete safe and untouched.
+
+```{sql, eval = FALSE}
+DELETE FROM Batting_post_2006
+WHERE yearID < 2006
+```
+
+We're going to do the same thing with our Salaries table, and eventually our Pitching table. We won't do the Pitching table just yet, but we can follow these same steps in order to set that table up for export to R. For now, we'll work on the Salaries table.
+
+
+**Note to self, this is where I left off**
+```{r}
+batting_post_2006 <- read.csv("Batting_post_2006.csv", header = T)
+salaries_post_2006 <- read.csv("Salaries_post_2006.csv", header = T)
+total <- merge(batting_post_2006,salaries_post_2006,by="playerID")
+newdata <- subset(total, yearID.x == yearID.y)
+qualified <- subset(newdata, AB >= 300)
+```
+
+Read the data in and merged it in R because SQL was having a lot of problems dealing with 0 values and INNER JOIN wouldn't cooperate, and we can't ignore them in most cases (3B = 0, for example). For tomorrow (or Monday), an explanation of why we did it this way would be good, in addition to explaining where we left off with SQL.
+
+We should get the player value data from baseball-reference and convert it to CSV, then we should see if we can combine the baseball-reference data with our current data. That'd be a good task for Sunday or Monday
