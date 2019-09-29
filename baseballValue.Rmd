@@ -26,6 +26,7 @@ Once the Lahman database is all settled in its own schema, we want to start to w
 
 #Talking to our Database
 
+**A lot of this isn't necessary. We can just say what tables we want from the Lahman database.**
 The first thing you'll do is make sure that the RMySQL package is installed. This is as simple as calling **install.packages("RMySQL")** once.
 
 Next we'll load up our RMySQL library and get to work.
@@ -158,12 +159,13 @@ CREATE TABLE Batting_Salary (
     CS int,
     BB int,
     SO int,
-    IBB int,
-    HBP int,
-    SH int,
-    SF int,
     GIDP int,
+    SF int,
+    SH int,
+    HBP int,
+    IBB int,
 	PRIMARY KEY (AutoNum)
+);
 );
 ```
 
@@ -184,6 +186,18 @@ FROM Batting_post_2006
 INNER JOIN Player_Salary_Info ON Player_Salary_Info.playerID = Batting_post_2006.playerID 
 AND Player_Salary_Info.yearID = Batting_post_2006.yearID
 ```
-**More SQL stuff**
-It is possible to 
-We should get the player value data from baseball-reference and convert it to CSV, then we should see if we can combine the baseball-reference data with our current data. That'd be a good task for Sunday or Monday
+
+Now we'll need to combine this yet again with 
+
+
+**Notes to self**
+We need to read in the data from Baseball-Reference, but that can't really be done until the season ends so we can have 2019 stats. So we'll wait until Monday or Tuesday to do that, and then we can work on combining our player value data from Baseball-Reference with our Salary and Batting data from the Lahman database.
+
+We read in the Batting_salary data, and initially the GIDP and IBB stats were flipped, so it's really important to make sure the proper values are going in the proper containers.
+
+We should download the data from BBref, import it into MySQL, create a copy that's from 2006 to 2016, and see if we can combine that with our Batting_salary data. It would be good to identify which variables are worth keeping, since not all of them are going to be worth keeping. An inner join with the AND operator worked well last time, so that's probably the best best for next time.
+
+Once the data is combined, we'll have to decide if it's worth combining the data for pitchers now or doing it later. It might make the most sense to do it now so that we can stop working in SQL and start working in R entirely. A lot of the steps will be the same.
+
+Once we're at that point, we can tackle the specific steps needed for molding the data in R in order to give us some variables to work with. 
+

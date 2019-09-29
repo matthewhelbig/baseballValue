@@ -19,10 +19,10 @@ CREATE TABLE Batting_Salary (
     CS int,
     BB int,
     SO int,
-    IBB int,
-    HBP int,
-    SH int,
-    SF int,
     GIDP int,
+    SF int,
+    SH int,
+    HBP int,
+    IBB int,
 	PRIMARY KEY (AutoNum)
 );
