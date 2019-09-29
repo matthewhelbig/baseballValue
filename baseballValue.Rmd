@@ -70,18 +70,120 @@ DELETE FROM Batting_post_2006
 WHERE yearID < 2006
 ```
 
-We're going to do the same thing with our Salaries table, and eventually our Pitching table. We won't do the Pitching table just yet, but we can follow these same steps in order to set that table up for export to R. For now, we'll work on the Salaries table.
+We're going to do the same thing with our Salaries table, and eventually our Pitching table. We won't do the Pitching table just yet, but we can follow these same steps in order to set that table up for export to R. For now, we'll work on the Salaries table:
 
-
-**Note to self, this is where I left off**
-```{r}
-batting_post_2006 <- read.csv("Batting_post_2006.csv", header = T)
-salaries_post_2006 <- read.csv("Salaries_post_2006.csv", header = T)
-total <- merge(batting_post_2006,salaries_post_2006,by="playerID")
-newdata <- subset(total, yearID.x == yearID.y)
-qualified <- subset(newdata, AB >= 300)
+```{sql, eval = FALSE}
+CREATE TABLE Salaries_post_2006
+LIKE Salaries
 ```
 
-Read the data in and merged it in R because SQL was having a lot of problems dealing with 0 values and INNER JOIN wouldn't cooperate, and we can't ignore them in most cases (3B = 0, for example). For tomorrow (or Monday), an explanation of why we did it this way would be good, in addition to explaining where we left off with SQL.
+```{sql, eval = FALSE}
+INSERT INTO Salaries_post_2006
+SELECT *
+FROM Salaries;
+```
 
+```{sql, eval = FALSE}
+DELETE FROM Salaries_post_2006
+WHERE yearID < 2006
+```
+
+Here, we created a new table to put our data in, moved all of our data from the Salaries table into it, and then limited ourselves to data after 2016. Once again, the original Salaries table is untouched.
+
+One important step that hasn't happened yet is getting birth year statistics from the Master table in the database. This will allow us to create an Age variable in R later, which will be a potentially key attribute for determining who is overvalued and undervalued. In order to add birth year to our Salary data, we'll need to join the two tables.
+
+First, we create a new container for our combined data:
+
+```{sql, eval = FALSE}
+CREATE TABLE Player_Salary_Info (
+    AutoNum int NOT NULL AUTO_INCREMENT,
+    playerID varchar(255),
+    birthyear int,
+    yearID int,
+    salary int,
+	PRIMARY KEY (AutoNum)
+);
+```
+
+The AutoNum variable is important here, because we need something as the primary key, and if we were to use playerID then we'd have duplicate values between Salary and Master (since the playerIDs are the same between the two tables).
+
+Next, we'll populate our new table with data:
+```{sql, eval = FALSE}
+INSERT INTO Player_Salary_Info 
+SELECT 0, Salaries_post_2006.playerID, Master.birthYear, 
+Salaries_post_2006.yearID, Salaries_post_2006.salary
+FROM Salaries_post_2006 
+INNER JOIN Master ON Salaries_post_2006.playerID = Master.playerID
+```
+
+
+So now we know that we've managed to get playerID, birthyear, yearID, and salary in the same spot. Our next task will be combining this information with our Batting table, at which point we'll be able to move this new table over to R.
+
+One hiccup we face is that several of our variables for some reason are indicated as strings despite being numeric values. I've encountered issues with this before, where a value of 0 would return an empty string (like " ") instead of actually being 0. To solve this, we can change the string columns into integer columns using the following lines of code:
+
+```{sql, eval = FALSE}
+ALTER TABLE example
+ADD newCol int;
+
+UPDATE example SET newCol = CAST(column_name AS UNSIGNED);
+
+ALTER TABLE example
+DROP COLUMN column_name;
+
+ALTER TABLE example
+CHANGE COLUMN newCol column_name int;
+```
+
+Now that our data is in a format we can work with that won't give us (hopefully) any errors, we can create and populate our Batting table with salary added. We create the parameters for the new table:
+
+```{sql, eval = FALSE}
+CREATE TABLE Batting_Salary (
+    AutoNum int NOT NULL AUTO_INCREMENT,
+    playerID varchar(255),
+    birthyear int,
+    yearID int,
+    salary int,
+    stint int,
+    teamID varchar(255),
+    lgID varchar(255),
+    G int,
+    AB int,
+    R int,
+    H int,
+    2B int,
+    3B int,
+    HR int,
+    RBI int,
+    SB int,
+    CS int,
+    BB int,
+    SO int,
+    IBB int,
+    HBP int,
+    SH int,
+    SF int,
+    GIDP int,
+	PRIMARY KEY (AutoNum)
+);
+```
+
+Now we populate our new table:
+
+```{sql, eval = FALSE}
+INSERT INTO Batting_Salary
+SELECT 0, Batting_post_2006.playerID, Player_Salary_Info.birthyear, 
+Player_Salary_Info.yearID, Player_Salary_Info.salary, Batting_post_2006.stint, 
+Batting_post_2006.teamID, Batting_post_2006.lgID, Batting_post_2006.G, 
+Batting_post_2006.AB, Batting_post_2006.R, Batting_post_2006.H, 
+Batting_post_2006.2B, Batting_post_2006.3B, Batting_post_2006.HR, 
+Batting_post_2006.RBI, Batting_post_2006.SB, Batting_post_2006.CS, 
+Batting_post_2006.BB, Batting_post_2006.SO, Batting_post_2006.GIDP, 
+Batting_post_2006.SF, Batting_post_2006.SH, Batting_post_2006.HBP, 
+Batting_post_2006.IBB    
+FROM Batting_post_2006
+INNER JOIN Player_Salary_Info ON Player_Salary_Info.playerID = Batting_post_2006.playerID 
+AND Player_Salary_Info.yearID = Batting_post_2006.yearID
+```
+**More SQL stuff**
+It is possible to 
 We should get the player value data from baseball-reference and convert it to CSV, then we should see if we can combine the baseball-reference data with our current data. That'd be a good task for Sunday or Monday
