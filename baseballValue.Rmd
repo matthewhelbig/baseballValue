@@ -22,33 +22,13 @@ It's possible to download the database as a .CSV file, and you could technically
 
 Sean Lahman has posted the entire .sql file on his website, so importing it into MySQL is as simple as hitting 'Data Import' and loading that database into its own schema.
 
-Once the Lahman database is all settled in its own schema, we want to start to work with that data. It's definitely possible to run all your SQL commands inside the MySQL environment itself, but RStudio has packages available for installation that make it easy to work with your database right from R. This has a few advantages, most notably the fact that you don't have to keep hopping back and forth between programs.
+Once the Lahman database is all settled in its own schema, we want to start to work with that data. There are packages that let you run SQL commands inside R, and there is definitely some value in not having to hop back and forth between R and your SQL environments. However, I'm more comfortable working in MySQL directly, so we won't worry too much about those R-SQL packages (namely RMySQL).
 
-#Talking to our Database
+#Setting things up in SQL
 
-**A lot of this isn't necessary. We can just say what tables we want from the Lahman database.**
-The first thing you'll do is make sure that the RMySQL package is installed. This is as simple as calling **install.packages("RMySQL")** once.
+The three tables that we're most interested in right now are "Batting," "Pitching," and "Salaries." The database has a ton of information that's interesting, but ultimately not super useful for our experiment. We're going to be mostly concerned with salary information from 2006 to 2016, since a lot of salary data before 2006 is incomplete and we're going to be running some predictive models on 2017 and 2018 data later.
 
-Next we'll load up our RMySQL library and get to work.
-```{r}
-library(RMySQL)
-```
-
-```{r, include= FALSE}
-mydb = dbConnect(MySQL(), user='root', password='doorknob18pillow', dbname='Lahman2016', host='127.0.0.1')
-```
-You'll need to define your new database object, called "mydb" here, using the following template:
-
-**mydb = dbConnect(MySQL(), user='user', password='password', dbname='dbname', host='host')**.
-
-
-Then we'll run a quick command to look at the different tables inside the dataset we've loaded up.
-```{r}
-dbListTables(mydb)
-```
-
-So the three that we're most interested in right now are "Batting," "Pitching," and "Salaries." The database has a ton of information that's interesting, but ultimately not super useful for our experiment. We're going to be mostly concerned with salary information from 2006 to 2016, since a lot of salary data before 2006 is incomplete and we're going to be running some predictive models on 2017 and 2018 data later.
-
+##"Subsetting" our data
 We'll need to create a new table in SQL based on our criteria of only needing 2006 and later (this database ends in 2016).
 
 ```{sql, eval = FALSE}
@@ -91,6 +71,7 @@ WHERE yearID < 2006
 
 Here, we created a new table to put our data in, moved all of our data from the Salaries table into it, and then limited ourselves to data after 2016. Once again, the original Salaries table is untouched.
 
+##Joining Birth Year and Salary
 One important step that hasn't happened yet is getting birth year statistics from the Master table in the database. This will allow us to create an Age variable in R later, which will be a potentially key attribute for determining who is overvalued and undervalued. In order to add birth year to our Salary data, we'll need to join the two tables.
 
 First, we create a new container for our combined data:
@@ -120,6 +101,7 @@ INNER JOIN Master ON Salaries_post_2006.playerID = Master.playerID
 
 So now we know that we've managed to get playerID, birthyear, yearID, and salary in the same spot. Our next task will be combining this information with our Batting table, at which point we'll be able to move this new table over to R.
 
+##Joining Birth Year, Salary, and Batting
 One hiccup we face is that several of our variables for some reason are indicated as strings despite being numeric values. I've encountered issues with this before, where a value of 0 would return an empty string (like " ") instead of actually being 0. To solve this, we can change the string columns into integer columns using the following lines of code:
 
 ```{sql, eval = FALSE}
@@ -166,7 +148,6 @@ CREATE TABLE Batting_Salary (
     IBB int,
 	PRIMARY KEY (AutoNum)
 );
-);
 ```
 
 Now we populate our new table:
@@ -187,17 +168,84 @@ INNER JOIN Player_Salary_Info ON Player_Salary_Info.playerID = Batting_post_2006
 AND Player_Salary_Info.yearID = Batting_post_2006.yearID
 ```
 
-Now we'll need to combine this yet again with 
+So now we've successfully combined our tables with salary information, birth year information, and batting statistics into one table called Batting_Salary. In the process, we also already shaped the data so that it's only dealing with the years we're concerned with (2006 to 2016). We're just one step away from having our Batter data ready for analysis in R. That step is getting our player value data from Baseball-Reference.
+
+##Getting player value data from Baseball-Reference
+
+Our first step is to head to <https://www.baseball-reference.com/data/>, where they keep a daily log of player value data for every player in baseball history. Player value is measured in a lot of different ways, and a constant source of contention in the baseball community is which metrics provide the most accurate measurement of a player's true value. 
+
+The player value metric we'll be focusing on the most is Wins Above Replacement (abbreviated as WAR), which measures how many wins a player provided to his team compared to a random player that you could find in the minor leagues. As a rough translation, consider WAR to be the "stock price" of MLB players, as it gives a simple and quick approximation of the value of a player (or stock).
+
+The information we're looking for is all the way at the bottom of the page, under "war_daily_bat.txt." We'll download that, and convert it to .csv using a spreadhseet program (I'm using Open Office). Just follow the steps for converting everything, and we'll save it to our active folder.
+
+Now we need to load this data into SQL. However, if we look at this data in R:
+
+
+
+```{r}
+Daily_bat <- read.csv("war_daily_bat.csv")
+names(Daily_bat)
+```
+
+We can see that we have a ton of variables that we don't necessarily want. Remember when we created a container in SQL above? If we were to try to read this into SQL now, we'd have to create a container for every one of these variables. We don't necessarily need "oppRpG," which measures how many runs per game that player's opponent scored. Similarly, we don't need a lot of other variables. We're going to limit ourselves to just the ones we want to keep by running the following (Note: you'll need the "dplyr" library for this function):
+
+```{r, message=FALSE, echo=FALSE}
+library(dplyr)
+```
+
+```{r}
+kept_Columns = select(Daily_bat, 1, 2, 4, 5, 6, 31, 32, 33, 36, 47)
+```
+
+Which is going to keep only the columns we're interested in, namely:
+
+```{r}
+names(kept_Columns)
+```
+
+Next we're going to subset our data to keep it within the year range we're investigating (2006 to 2016), as well as limiting our data to be only batters, since we really aren't interested in how pitchers hit. Pitchers aren't paid based on their ability to hit, so batting statistics for pitchers aren't relevant to what we're studying.
+```{r}
+years_pitchers_Subset <- subset(kept_Columns, 2005 < year_ID & year_ID < 2017 & pitcher == "N")
+```
+
+Finally, we'll remove the pitcher column, since all of our kept players are going to be batters:
+
+```{r}
+Batting_value <- select(years_pitchers_Subset, -9)
+```
+
+After all this, we're ready to export this data from R and into SQL so we can join it with our Batting_Salary table.
+
+```{r}
+write.csv(Batting_value, "Batting_Value.csv")
+```
+
+We create our container in SQL by running the following:
+
+```{sql, eval = FALSE}
+CREATE TABLE Batting_Value (
+    AutoNum int NOT NULL AUTO_INCREMENT,
+    name_common varchar(255),
+    age int,
+    player_ID varchar(255),
+    year_ID int,
+    team_ID varchar(255),
+    WAR DECIMAL(3,2),
+    WAR_def DECIMAL(3,2),
+    WAR_off DECIMAL(3,2),
+    OPS_plus int,
+	PRIMARY KEY (AutoNum)
+);
+```
+
+Then we'll load our data into the container using the Import Wizard. Now we want to combine this data with our Batting_Salary data so we can have our final dataset to work with in R.
+
+We'll create the container we'll use for our combined data:
 
 
 **Notes to self**
-We need to read in the data from Baseball-Reference, but that can't really be done until the season ends so we can have 2019 stats. So we'll wait until Monday or Tuesday to do that, and then we can work on combining our player value data from Baseball-Reference with our Salary and Batting data from the Lahman database.
+Lost some data in SQL, data in R is fine. Using "troutmi01" as our test. Salaries_post_2006 doesn't have Mike Trout for 2011 or 2012, which is probably because they don't have that info. But our issue is that Batting_Value only has Mike Trout for 2011, 2014, and 2015. Which makes no sense. I think it's an issue with how Open Office saves the .csv. A good potential solution would be to save the .csv again in Excel as the MS-DOS CSV, try importing that, and seeing if that works. It's just the Batting_Value table that has issues.
 
-We read in the Batting_salary data, and initially the GIDP and IBB stats were flipped, so it's really important to make sure the proper values are going in the proper containers.
+After that, we'll have to figure out how to get our tables to cooperate and join. I don't have many leads on that one, and we'll have to do a lot more digging on which join is the right one to use and how to operate it so that it works. Then we'll be all set with loading our data into R. Just about half the data cleaning is done.
 
-We should download the data from BBref, import it into MySQL, create a copy that's from 2006 to 2016, and see if we can combine that with our Batting_salary data. It would be good to identify which variables are worth keeping, since not all of them are going to be worth keeping. An inner join with the AND operator worked well last time, so that's probably the best best for next time.
-
-Once the data is combined, we'll have to decide if it's worth combining the data for pitchers now or doing it later. It might make the most sense to do it now so that we can stop working in SQL and start working in R entirely. A lot of the steps will be the same.
-
-Once we're at that point, we can tackle the specific steps needed for molding the data in R in order to give us some variables to work with. 
 
