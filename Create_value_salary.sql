@@ -25,9 +25,9 @@ CREATE TABLE Value_Salary (
     SH int,
     HBP int,
     IBB int,
-    WAR DECIMAL(3,2),
-    WAR_def DECIMAL(3,2),
-    WAR_Off DECIMAL(3,2),
+    WAR DECIMAL(4,2),
+    WAR_def DECIMAL(4,2),
+    WAR_Off DECIMAL(4,2),
     OPS_plus int,
 	PRIMARY KEY (AutoNum)
 );

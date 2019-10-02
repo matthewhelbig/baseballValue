@@ -230,22 +230,115 @@ CREATE TABLE Batting_Value (
     player_ID varchar(255),
     year_ID int,
     team_ID varchar(255),
-    WAR DECIMAL(3,2),
-    WAR_def DECIMAL(3,2),
-    WAR_off DECIMAL(3,2),
+    WAR DECIMAL(4,2),
+    WAR_def DECIMAL(4,2),
+    WAR_off DECIMAL(4,2),
     OPS_plus int,
 	PRIMARY KEY (AutoNum)
 );
 ```
 
-Then we'll load our data into the container using the Import Wizard. Now we want to combine this data with our Batting_Salary data so we can have our final dataset to work with in R.
+Then we'll load our data into the container using the following command:
+
+```{sql, eval = FALSE}
+LOAD DATA LOCAL INFILE '/filepath/Batting_Value.csv'
+INTO TABLE Batting_Value FIELDS TERMINATED BY ','
+ENCLOSED BY '"' LINES TERMINATED BY '\n'
+IGNORE 1 LINES
+```
+
+Now we want to combine this data with our Batting_Salary data so we can have our final dataset to work with in R.
 
 We'll create the container we'll use for our combined data:
+```{sql, eval = FALSE}
+CREATE TABLE Value_Salary (
+    AutoNum int NOT NULL AUTO_INCREMENT,
+    playerID varchar(255),
+    name_common varchar(255),
+    yearID int,
+    age int,
+    salary int,
+    stint int,
+    teamID varchar(255),
+    lgID varchar(255),
+    G int,
+    AB int,
+    R int,
+    H int,
+    2B int,
+    3B int,
+    HR int,
+    RBI int,
+    SB int,
+    CS int,
+    BB int,
+    SO int,
+    GIDP int,
+    SF int,
+    SH int,
+    HBP int,
+    IBB int,
+    WAR DECIMAL(4,2),
+    WAR_def DECIMAL(4,2),
+    WAR_Off DECIMAL(4,2),
+    OPS_plus int,
+	PRIMARY KEY (AutoNum)
+);
+```
+
+Then we load in our data:
+
+```{sql, eval = FALSE}
+INSERT INTO Value_Salary
+SELECT DISTINCT 0,
+Batting_Salary.playerID,
+Batting_Value.name_common,
+Batting_Salary.yearID,
+Batting_Value.age,
+Batting_Salary.salary,
+Batting_Salary.stint,
+Batting_Salary.teamID,
+Batting_Salary.lgID,
+Batting_Salary.G,
+Batting_Salary.AB,
+Batting_Salary.R,
+Batting_Salary.H,
+Batting_Salary.2B,
+Batting_Salary.3B,
+Batting_Salary.HR,
+Batting_Salary.RBI,
+Batting_Salary.SB,
+Batting_Salary.CS,
+Batting_Salary.BB,
+Batting_Salary.SO,
+Batting_Salary.GIDP,
+Batting_Salary.SF,
+Batting_Salary.SH,
+Batting_Salary.HBP,
+Batting_Salary.IBB,
+Batting_Value.WAR,
+Batting_Value.WAR_def,
+Batting_Value.WAR_off,
+Batting_Value.OPS_plus    
+FROM Batting_Salary
+INNER JOIN Batting_Value ON Batting_Salary.playerID = Batting_Value.player_ID AND Batting_Salary.yearID = Batting_Value.year_ID
+```
 
 
+As a note, this table works very well until it comes to the players who were traded in the middle of the season. When a player hasn't been traded, there is one row per year. However, when a player has been traded, we would expecto see two columns that year (one for the old team, one for the new team). However, we see four:
+
+```{r, echo=FALSE, message=FALSE}
+Pre_Value_Salary <- read.csv("Value_Salary.csv")
+show_duplicates <- subset(Pre_Value_Salary, AutoNum == 1:6)
+```
+
+```{r, echo = FALSE}
+head(show_duplicates[,1:7])
+```
 **Notes to self**
-Lost some data in SQL, data in R is fine. Using "troutmi01" as our test. Salaries_post_2006 doesn't have Mike Trout for 2011 or 2012, which is probably because they don't have that info. But our issue is that Batting_Value only has Mike Trout for 2011, 2014, and 2015. Which makes no sense. I think it's an issue with how Open Office saves the .csv. A good potential solution would be to save the .csv again in Excel as the MS-DOS CSV, try importing that, and seeing if that works. It's just the Batting_Value table that has issues.
 
-After that, we'll have to figure out how to get our tables to cooperate and join. I don't have many leads on that one, and we'll have to do a lot more digging on which join is the right one to use and how to operate it so that it works. Then we'll be all set with loading our data into R. Just about half the data cleaning is done.
+So all the data we need is loaded into Value_Salary. We need to demonstrate in this document how we got it from the duplicate stage to the working stage. The "Create year...," "Eliminate...," "Bind...," are what we want to move over to the R Markdown document.
+
+Then we'll have all our batting data read in! The next thing will be to read in all of our pitcher data. The good news is that they say 80% of a project is cleaning data, so we're basically 40% done with our project now. We can follow a lot of the same steps for reading in the pitcher data now that we have those steps listed above.
 
 
