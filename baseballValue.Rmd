@@ -28,7 +28,7 @@ Once the Lahman database is all settled in its own schema, we want to start to w
 
 The three tables that we're most interested in right now are "Batting," "Pitching," and "Salaries." The database has a ton of information that's interesting, but ultimately not super useful for our experiment. We're going to be mostly concerned with salary information from 2006 to 2016, since a lot of salary data before 2006 is incomplete and we're going to be running some predictive models on 2017 and 2018 data later.
 
-##"Subsetting" our data
+##"Subsetting" our Batting data
 We'll need to create a new table in SQL based on our criteria of only needing 2006 and later (this database ends in 2016).
 
 ```{sql, eval = FALSE}
@@ -335,10 +335,138 @@ show_duplicates <- subset(Pre_Value_Salary, AutoNum == 1:6)
 ```{r, echo = FALSE}
 head(show_duplicates[,1:7])
 ```
+
+##Split, apply, combine
+We need to remove those duplicates, and one very common way of doing so is via a process often used in data analysis called "Split, apply, combine."
+
+First, we split our data by year:
+
+```{r}
+year <- split(Pre_Value_Salary, Pre_Value_Salary$yearID)
+```
+Which returns:
+```{r, echo=FALSE}
+names(year)
+```
+
+Then we need to delete the duplicate values from each year, like we mentioned above:
+
+```{r}
+dup6 <- year$`2006`[!duplicated(year$`2006`$playerID),]
+dup7 <- year$`2007`[!duplicated(year$`2007`$playerID),]
+dup8 <- year$`2008`[!duplicated(year$`2008`$playerID),]
+dup9 <- year$`2009`[!duplicated(year$`2009`$playerID),]
+dup10 <- year$`2010`[!duplicated(year$`2010`$playerID),]
+dup11 <- year$`2011`[!duplicated(year$`2011`$playerID),]
+dup12 <- year$`2012`[!duplicated(year$`2012`$playerID),]
+dup13 <- year$`2013`[!duplicated(year$`2013`$playerID),]
+dup14 <- year$`2014`[!duplicated(year$`2014`$playerID),]
+dup15 <- year$`2015`[!duplicated(year$`2015`$playerID),]
+dup16 <- year$`2016`[!duplicated(year$`2016`$playerID),]
+```
+
+Finally, we bind them back together into the dataframe that we'll be using for our batter analysis:
+
+```{r}
+Value_Salary <- rbind(dup6, dup7, dup8, dup9, dup10, dup11, dup12, dup13, dup14, dup15, dup16)
+```
+
+We can see that we've successfully removed the duplicates:
+```{r, echo = FALSE}
+head(Value_Salary[,1:7])
+```
+
+#Reading in our pitching data
+
+##Subsetting our pitching data
+First we create our container in SQL:
+
+```{sql, eval = FALSE}
+CREATE TABLE Pitching_post_2006
+LIKE Pitching
+```
+
+Then we load our data into our table:
+
+```{sql, eval = FALSE}
+INSERT INTO Pitching_post_2006
+SELECT *
+FROM Pitching;
+```
+
+Then we do what we did with Batting and Salary and limit our data to just 2006-2016:
+```{sql, eval = FALSE}
+DELETE FROM Pitching_post_2006
+WHERE yearID < 2006
+```
+
+We create our Pitching_Salary table:
+```{sql, eval = FALSE}
+CREATE TABLE Pitching_Salary (
+    AutoNum int NOT NULL AUTO_INCREMENT,
+    playerID varchar(255),
+    birthyear int,
+    yearID int,
+    salary int,
+    stint int,
+    teamID varchar(255),
+    lgID varchar(255),
+    W int,
+    L int,
+    G int,
+    GS int,
+    CG int,
+    SHO int,
+    SV int,
+    IPouts int,
+    H int,
+    ER int,
+    HR int,
+    BB int,
+    SO int,
+    ERA float,
+    BK int,
+    R int,
+	PRIMARY KEY (AutoNum)
+);
+```
+
+Then we load our Pitching and Salary data into our new table:
+```{sql, eval = FALSE}
+INSERT INTO Pitching_Salary
+SELECT 0, 
+Pitching_post_2006.playerID, 
+Player_Salary_Info.birthyear, 
+Player_Salary_Info.yearID, 
+Player_Salary_Info.salary, 
+Pitching_post_2006.stint, 
+Pitching_post_2006.teamID, 
+Pitching_post_2006.lgID, 
+Pitching_post_2006.W, 
+Pitching_post_2006.L, 
+Pitching_post_2006.G, 
+Pitching_post_2006.GS, 
+Pitching_post_2006.CG, 
+Pitching_post_2006.SHO, 
+Pitching_post_2006.SV, 
+Pitching_post_2006.IPouts, 
+Pitching_post_2006.H, 
+Pitching_post_2006.ER,
+Pitching_post_2006.HR, 
+Pitching_post_2006.BB, 
+Pitching_post_2006.SO, 
+Pitching_post_2006.ERA, 
+Pitching_post_2006.BK, 
+Pitching_post_2006.R
+FROM Pitching_post_2006
+INNER JOIN Player_Salary_Info ON Player_Salary_Info.playerID = Pitching_post_2006.playerID 
+AND Player_Salary_Info.yearID = Pitching_post_2006.yearID
+```
+
+So now we're at the point where we need to go back to Baseball-Reference and get our value data. For batters, it was called "war_daily_bat," and for pitchers 
+
 **Notes to self**
 
-So all the data we need is loaded into Value_Salary. We need to demonstrate in this document how we got it from the duplicate stage to the working stage. The "Create year...," "Eliminate...," "Bind...," are what we want to move over to the R Markdown document.
-
-Then we'll have all our batting data read in! The next thing will be to read in all of our pitcher data. The good news is that they say 80% of a project is cleaning data, so we're basically 40% done with our project now. We can follow a lot of the same steps for reading in the pitcher data now that we have those steps listed above.
+Tomorrow, we should read in the pitcher data from Baseball-Reference, and see how far we can get on setting up our data to be similar to our Value_Salary data
 
 
