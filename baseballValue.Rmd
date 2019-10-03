@@ -328,54 +328,33 @@ INNER JOIN Batting_Value ON Batting_Salary.playerID = Batting_Value.player_ID AN
 As a note, this table works very well until it comes to the players who were traded in the middle of the season. When a player hasn't been traded, there is one row per year. However, when a player has been traded, we would expecto see two columns that year (one for the old team, one for the new team). However, we see four:
 
 ```{r, echo=FALSE, message=FALSE}
-Pre_Value_Salary <- read.csv("Value_Salary.csv")
-show_duplicates <- subset(Pre_Value_Salary, AutoNum == 1:6)
+Pre_Batting_Value_Salary <- read.csv("Value_Salary.csv")
+show_duplicates <- subset(Pre_Batting_Value_Salary, AutoNum == 1:6)
 ```
 
 ```{r, echo = FALSE}
 head(show_duplicates[,1:7])
 ```
 
-##Split, apply, combine
+##Split, apply, combine?
 We need to remove those duplicates, and one very common way of doing so is via a process often used in data analysis called "Split, apply, combine."
 
-First, we split our data by year:
+This process involves splitting the data into subsets, applying a function to each subset, and then combining the data back together. Which is what we want to do here. We want to remove the duplicate players from every year, but we don't want to remove duplicates from the dataset as a whole. For example, there are multiple "Bobby Abreu" rows in our 2006 data, which we would like to reduce to a single row. However, we don't want to remove all of the "Bobby Abreu" rows from our master dataset, because that would remove Bobby Abreu's stats for 2007, 2008, and so on.
 
+We could subset our data by year, write a function that removes duplicates for each year, and then join all of our subsets back together. Or, we could use a library that we've already called, the 'dplyr' library, and remove the duplicates by year from our main dataset.
+
+If we execute the following command:
 ```{r}
-year <- split(Pre_Value_Salary, Pre_Value_Salary$yearID)
-```
-Which returns:
-```{r, echo=FALSE}
-names(year)
-```
-
-Then we need to delete the duplicate values from each year, like we mentioned above:
-
-```{r}
-dup6 <- year$`2006`[!duplicated(year$`2006`$playerID),]
-dup7 <- year$`2007`[!duplicated(year$`2007`$playerID),]
-dup8 <- year$`2008`[!duplicated(year$`2008`$playerID),]
-dup9 <- year$`2009`[!duplicated(year$`2009`$playerID),]
-dup10 <- year$`2010`[!duplicated(year$`2010`$playerID),]
-dup11 <- year$`2011`[!duplicated(year$`2011`$playerID),]
-dup12 <- year$`2012`[!duplicated(year$`2012`$playerID),]
-dup13 <- year$`2013`[!duplicated(year$`2013`$playerID),]
-dup14 <- year$`2014`[!duplicated(year$`2014`$playerID),]
-dup15 <- year$`2015`[!duplicated(year$`2015`$playerID),]
-dup16 <- year$`2016`[!duplicated(year$`2016`$playerID),]
-```
-
-Finally, we bind them back together into the dataframe that we'll be using for our batter analysis:
-
-```{r}
-Value_Salary <- rbind(dup6, dup7, dup8, dup9, dup10, dup11, dup12, dup13, dup14, dup15, dup16)
+Batting_Value_Salary <- Pre_Batting_Value_Salary %>%
+  distinct(playerID, yearID, .keep_all = TRUE)
 ```
 
 We can see that we've successfully removed the duplicates:
 ```{r, echo = FALSE}
-head(Value_Salary[,1:7])
+head(Batting_Value_Salary[,1:7])
 ```
 
+This is a nice way of using pre-built libraries to limit the amount of code that you need to write. The dplyr library has a ton of functions like this, and we'll make use of them when we further analyze our data in R.
 #Reading in our pitching data
 
 ##Subsetting our pitching data
