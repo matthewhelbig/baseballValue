@@ -25,29 +25,6 @@ show_duplicates <- subset(Pre_Batting_Value_Salary, AutoNum == 1:6)
 
 
 
-#testing -- Does the same as split, apply, combine, except in a single line of code. Will keep the other code as an example,
-#but for now we should update the R Markdown with this. This code removes playerID duplicates by year.
+#testing -- Does the same as split, apply, combine, except in a single line of code. This code removes playerID duplicates by year.
 Batting_Value_Salary <- Pre_Batting_Value_Salary %>%
   distinct(playerID, yearID, .keep_all = TRUE)
-
-##split function to create subsets by year##
-#year <- split(Pre_Value_Salary, Pre_Value_Salary$yearID)
-
-##Eliminate duplicates
-
-#dup6 <- year$`2006`[!duplicated(year$`2006`$playerID),]
-#dup7 <- year$`2007`[!duplicated(year$`2007`$playerID),]
-#dup8 <- year$`2008`[!duplicated(year$`2008`$playerID),]
-#dup9 <- year$`2009`[!duplicated(year$`2009`$playerID),]
-#dup10 <- year$`2010`[!duplicated(year$`2010`$playerID),]
-#dup11 <- year$`2011`[!duplicated(year$`2011`$playerID),]
-#dup12 <- year$`2012`[!duplicated(year$`2012`$playerID),]
-#dup13 <- year$`2013`[!duplicated(year$`2013`$playerID),]
-#dup14 <- year$`2014`[!duplicated(year$`2014`$playerID),]
-#dup15 <- year$`2015`[!duplicated(year$`2015`$playerID),]
-#dup16 <- year$`2016`[!duplicated(year$`2016`$playerID),]
-
-##Bind them back together
-
-#bad_vs_example <- rbind(dup6, dup7, dup8, dup9, dup10, dup11, dup12, dup13, dup14, dup15, dup16)
-

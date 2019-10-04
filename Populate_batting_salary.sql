@@ -1,4 +1,0 @@
-INSERT INTO Batting_Salary
-SELECT 0, Batting_post_2006.playerID, Player_Salary_Info.birthyear, Player_Salary_Info.yearID, Player_Salary_Info.salary, Batting_post_2006.stint, Batting_post_2006.teamID, Batting_post_2006.lgID, Batting_post_2006.G, Batting_post_2006.AB, Batting_post_2006.R, Batting_post_2006.H, Batting_post_2006.2B, Batting_post_2006.3B, Batting_post_2006.HR, Batting_post_2006.RBI, Batting_post_2006.SB, Batting_post_2006.CS, Batting_post_2006.BB, Batting_post_2006.SO, Batting_post_2006.GIDP, Batting_post_2006.SF, Batting_post_2006.SH, Batting_post_2006.HBP, Batting_post_2006.IBB    
-FROM Batting_post_2006
-INNER JOIN Player_Salary_Info ON Player_Salary_Info.playerID = Batting_post_2006.playerID AND Player_Salary_Info.yearID = Batting_post_2006.yearID

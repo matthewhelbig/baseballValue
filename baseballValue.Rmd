@@ -3,8 +3,8 @@ title: "Baseball Value"
 author: "Matthew Helbig"
 date: '2019-09-28'
 output:
-  pdf_document: default
-  html_document: default
+  pdf_document:
+    toc: true
 ---
 
 #Introduction
@@ -176,10 +176,9 @@ Our first step is to head to <https://www.baseball-reference.com/data/>, where t
 
 The player value metric we'll be focusing on the most is Wins Above Replacement (abbreviated as WAR), which measures how many wins a player provided to his team compared to a random player that you could find in the minor leagues. As a rough translation, consider WAR to be the "stock price" of MLB players, as it gives a simple and quick approximation of the value of a player (or stock).
 
-The information we're looking for is all the way at the bottom of the page, under "war_daily_bat.txt." We'll download that, and convert it to .csv using a spreadhseet program (I'm using Open Office). Just follow the steps for converting everything, and we'll save it to our active folder.
+The information we're looking for is all the way at the bottom of the page, under "war_daily_bat.txt." We'll download that, and convert it to .csv using a spreadsheet program (I'm using Open Office). Just follow the steps for converting everything, and we'll save it to our active folder.
 
 Now we need to load this data into SQL. However, if we look at this data in R:
-
 
 
 ```{r}
@@ -442,10 +441,142 @@ INNER JOIN Player_Salary_Info ON Player_Salary_Info.playerID = Pitching_post_200
 AND Player_Salary_Info.yearID = Pitching_post_2006.yearID
 ```
 
-So now we're at the point where we need to go back to Baseball-Reference and get our value data. For batters, it was called "war_daily_bat," and for pitchers 
+So now we're at the point where we need to go back to Baseball-Reference and get our value data. For batters, it was called "war_daily_bat," and for pitchers it's "war_daily_pitch." We take a look at the data in R, and see the following:
+
+```{r}
+Daily_pitch <- read.csv("war_daily_pitch.csv")
+names(Daily_pitch)
+```
+
+Limit ourselves to the names we want, and show the new column names
+```{r}
+pitch_kept_columns = select(Daily_pitch, 1, 2, 4, 5, 6, 29, 41)
+names(pitch_kept_columns)
+```
+
+Subset to limit ourselves to the years we want, and write it to csv so we can export it to SQL to combine with our Pitching Salary table
+```{r}
+Pitching_value <- subset(pitch_kept_columns, 2005 < year_ID & year_ID < 2017)
+
+write.csv(Pitching_value, "Pitching_Value.csv")
+```
+
+Create our pitching value container in SQL:
+```{sql, eval = FALSE}
+CREATE TABLE Pitching_Value (
+    AutoNum int NOT NULL AUTO_INCREMENT,
+    name_common varchar(255),
+    age int,
+    player_ID varchar(255),
+    year_ID int,
+    team_ID varchar(255),
+    WAR DECIMAL(4,2),
+    ERA_plus int,
+	PRIMARY KEY (AutoNum)
+);
+```
+
+Then load pitching value with data:
+```{sql, eval = FALSE}
+LOAD DATA LOCAL INFILE '/filepath/Pitching_Value.csv'
+INTO TABLE Pitching_Value FIELDS TERMINATED BY ','
+ENCLOSED BY '"' LINES TERMINATED BY '\n'
+IGNORE 1 LINES
+```
+
+Now we want to combine Pitching_Value with Pitching_Salary. We start by creating the container for our data:
+```{sql, eval = FALSE}
+CREATE TABLE Pitching_Value_Salary (
+    AutoNum int NOT NULL AUTO_INCREMENT,
+    playerID varchar(255),
+    name_common varchar(255),
+    yearID int,
+    age int,
+    salary int,
+    stint int,
+    teamID varchar(255),
+    lgID varchar(255),
+    W int,
+    L int,
+    G int,
+    GS int,
+    CG int,
+    SHO int,
+    SV int,
+    IPouts int,
+    H int,
+    ER int,
+    HR int,
+    BB int,
+    SO int,
+    ERA float,
+    BK int,
+    R int,
+    WAR DECIMAL(4,2),
+    ERA_plus int,
+	PRIMARY KEY (AutoNum)
+);
+```
+
+Then we load in our data:
+```{sql, eval = FALSE}
+INSERT INTO Pitching_Value_Salary
+SELECT DISTINCT 0,
+Pitching_Salary.playerID,
+Pitching_Value.name_common,
+Pitching_Salary.yearID,
+Pitching_Value.age,
+Pitching_Salary.salary,
+Pitching_Salary.stint,
+Pitching_Salary.teamID,
+Pitching_Salary.lgID,
+Pitching_Salary.W,
+Pitching_Salary.L,
+Pitching_Salary.G,
+Pitching_Salary.GS,
+Pitching_Salary.CG,
+Pitching_Salary.SHO,
+Pitching_Salary.SV,
+Pitching_Salary.IPouts,
+Pitching_Salary.H,
+Pitching_Salary.ER,
+Pitching_Salary.HR,
+Pitching_Salary.BB,
+Pitching_Salary.SO,
+Pitching_Salary.ERA,
+Pitching_Salary.BK,
+Pitching_Salary.R,
+Pitching_Value.WAR,
+Pitching_Value.ERA_plus    
+FROM Pitching_Salary
+INNER JOIN Pitching_Value ON Pitching_Salary.playerID = Pitching_Value.player_ID AND Pitching_Salary.yearID = Pitching_Value.year_ID
+```
+
+
+We have the same problem with duplicates that we did with our Batting data. Taking a look at the following, we can see those duplicates:
+```{r}
+Pre_Pitching_Value_Salary <- read.csv("Pitching_Value_Salary.csv")
+show_duplicates2 <- subset(Pre_Pitching_Value_Salary, name_common == "Jeremy Accardo")
+head(show_duplicates2[,1:7])
+```
+
+However, the same distinct function we used from Batting will work here as well:
+```{r}
+Pitching_Value_Salary <- Pre_Pitching_Value_Salary %>%
+  distinct(playerID, yearID, .keep_all = TRUE)
+```
+
+Taking a look to see if those duplicates are gone:
+```{r}
+show_duplicates3 <- subset(Pitching_Value_Salary, name_common == "Jeremy Accardo")
+head(show_duplicates3[,1:7])
+```
+
+There we go! Our Batting Value and Pitching Value data is all ready for analysis in R. It took a lot of behind the scenes work, but it left us with some very high quality data on which to test our hypotheses.
+
 
 **Notes to self**
 
-Tomorrow, we should read in the pitcher data from Baseball-Reference, and see how far we can get on setting up our data to be similar to our Value_Salary data
+All our data is read in and ready for analysis. The two major datasets are going to be "Batting_Value_Salary" and "Pitching_Value_Salary." We should do all our analysis on Batting first, and then run a separate experiment on Pitching data. For batting, tomorrow we should work on creating new variables (Batting average, cost per win, extra player value (based on cost per win * WAR)). If we get through that, we can start to play around with which players provided the most value, and where we should set our salary cutoff or our playing time cutoff. It would be nice to plot the data too, with cost per win and extra player value on the same graph to see who the big outliers (both positive and negative are). Once that's done, we'll take our next steps.
 
 
