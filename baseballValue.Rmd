@@ -354,7 +354,9 @@ head(Batting_Value_Salary[,1:7])
 ```
 
 This is a nice way of using pre-built libraries to limit the amount of code that you need to write. The dplyr library has a ton of functions like this, and we'll make use of them when we further analyze our data in R.
+
 #Reading in our pitching data
+Our next step will be reading in our pitching data.
 
 ##Subsetting our pitching data
 First we create our container in SQL:
@@ -574,9 +576,68 @@ head(show_duplicates3[,1:7])
 
 There we go! Our Batting Value and Pitching Value data is all ready for analysis in R. It took a lot of behind the scenes work, but it left us with some very high quality data on which to test our hypotheses.
 
+#Working with our Batting Value Data
+
+Now that we have everything loaded in and set up properly, we're going to begin the actual analysis step of this project. We spent a ton of time loading in the necessary variable in order to work with our data, but there are still more new variables that will help us draw even deeper conclusions.
+
+##Creating variables
+
+###Cost-per-win
+Since we have wins above replacement data and salary data, we can create a new variable called "cost-per-win" that will let us know how expensive a win is on the open market. If a team were to go out and sign a player, the "cost-per-win" would be how much it would cost, on average, to buy 1 win above replacement. That data has been collected online, and we're going to use the data from "https://batflipsandnerds.com/2018/06/20/the-modern-myths-of-baseball-the-cost-of-a-win/"
+
+These values change every year, so we'll need to make sure that the specific cost-per-win is applied to the appropriate year. In order to do this, we'll need to do another split-apply-combine on our data.
+
+First we'll split the data by year:
+```{r}
+year <- split(Batting_Value_Salary, Batting_Value_Salary$yearID)
+```
+
+Then we'll apply the appropriate cost-per-win to each year:
+```{r}
+year$`2006`$cost_per_win <- 4600000
+year$`2007`$cost_per_win <- 5300000
+year$`2008`$cost_per_win <- 5600000
+year$`2009`$cost_per_win <- 5700000
+year$`2010`$cost_per_win <- 5800000
+year$`2011`$cost_per_win <- 6400000
+year$`2012`$cost_per_win <- 6900000
+year$`2013`$cost_per_win <- 7500000
+year$`2014`$cost_per_win <- 7700000
+year$`2015`$cost_per_win <- 8700000
+year$`2016`$cost_per_win <- 9600000
+```
+
+Finally, we'll combine our data back together now that we've split it by year and applied the appropriate cost-per-win:
+```{r}
+Batting_Value_Salary <- rbind(year$`2006`, year$`2007`, year$`2008`, year$`2009`, year$`2010`, year$`2011`, year$`2012`, year$`2013`, year$`2014`, year$`2015`, year$`2016`)
+```
+
+###Player Money Value
+The next variable we're going to create is going to be "Player Money Value." This is going to capture how much value, in dollars, a player provided that season. We'll do this by multiplying a player's wins above replacement by the cost of a win above replacement. This number will essentially be how much a player was worth if they had been available on the open market and received fair market value. This is how we'll do it:
+```{r}
+Batting_Value_Salary$player_money_value <- (Batting_Value_Salary$WAR * Batting_Value_Salary$cost_per_win)
+```
+
+###Value Plus
+It's important to de-contextualize a player's value. For example, if we said that Joe Random provided $6 million in value, we wouldn't know off the top of our heads if that was good or bad. We'd need to know how much value everyone else was providing. "Value Plus" is a statistic that allows us to do that. It normalizes the value a player provides, where 100 is average. If a player has a Value Plus of 120, it means that they provided 20% more value than average. We'll calculate this by doing the following:
+```{r}
+Batting_Value_Salary$value_plus <- ((Batting_Value_Salary$player_money_value / mean(Batting_Value_Salary$player_money_value)*100))
+```
+
+###Excess value
+The next variable we'll need is "Excess value." This will measure the difference between how much a player was worth and how much they actually made. It's worth noting that for some players, especially good players with low salaries (i.e. players still on their rookie contracts), this number will be quite high. For some players, this number could be in the negatives, indicating that they cost their team money with their play. We'll calculate this as follows:
+```{r}
+Batting_Value_Salary$excess_value <- (Batting_Value_Salary$player_money_value - Batting_Value_Salary$salary)
+```
+
+###Excess value plus
+The final variable we'll be working with right now is "Excess Value Plus." This will be a normalized version of "Excess value" in order to give a more accurate and context-free representation of the excess value for each player. While knowing how valuable a player was with respect to other players, it's even more valuable to know how much excess value they provided relative to other players. This is very similar to our "Value Plus" statistic, except this new variable also incorporates a player's salary into it. Here's how we'll calculate it:
+```{r}
+Batting_Value_Salary$excess_value_plus <- ((Batting_Value_Salary$excess_value / mean(Batting_Value_Salary$excess_value)*100))
+```
 
 **Notes to self**
 
-All our data is read in and ready for analysis. The two major datasets are going to be "Batting_Value_Salary" and "Pitching_Value_Salary." We should do all our analysis on Batting first, and then run a separate experiment on Pitching data. For batting, tomorrow we should work on creating new variables (Batting average, cost per win, extra player value (based on cost per win * WAR)). If we get through that, we can start to play around with which players provided the most value, and where we should set our salary cutoff or our playing time cutoff. It would be nice to plot the data too, with cost per win and extra player value on the same graph to see who the big outliers (both positive and negative are). Once that's done, we'll take our next steps.
+Today we created some new variables which we'll use to do our major analyses. Tomorrow we'll work on showing that our data needs to be subsetted by age, explain why that is (and what causes that problem (low salaries for young players)), and then subset it as appropriate. It'll also be a good time to do our first plot, maybe of excess value plus against age? The first thing we'll want to do are the steps laid out in baseballValue.R and then proceed from there. Eventually it will be good to regress our dependent variables on "Excess_value_plus" or maybe "Value_plus" since those are what we want to measure eventually.
 
 

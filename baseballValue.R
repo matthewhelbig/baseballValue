@@ -1,30 +1,64 @@
 library(dplyr)
 library(data.table)
 
-#Read in data and view the head of the data briefly
-Daily_bat <- read.csv("war_daily_bat.csv")
-names(Daily_bat)
+#The below code is what we'll work on today 4/14. We don't necessarily need to subset just the old players yet. We can look 
+#at the cost per win stuff and "notice" that it's all younger players, then subset based on that. We'll continue to work
+#in "test" and "test2" until we have results stable enough for the actual "Batting_Value_Salary" table.
 
-#Select the columns we want to keep
-kept_Columns = select(Daily_bat, 1, 2, 4, 5, 6, 31, 32, 33, 36, 47)
+#This code subsets the data for all excess_value_plus > 1000. It'll show that, by and large, the players with the most
+#excess value skew young.
 
-#Subset the data to inlcude only batters between 2006 and 2016
-years_pitchers_Subset <- subset(kept_Columns, 2005 < year_ID & year_ID < 2017 & pitcher == "N")
+excess_subset_1000 <- subset(test2, test2$excess_value_plus > 1000)
 
-#Drop the Pitcher column since they'll all be "No"
-Batting_value <- select(years_pitchers_Subset, -9)
+#Let's compare the mean age for all players to the mean age for players who provide the most excess value.
 
-#Write Batting_Value to csv so we can join it with Salary in SQL
-write.csv(Batting_value, "Batting_Value.csv")
+mean(test2$age) #29.25
+mean(excess_subset_1000$age)
 
-#Read in our Value Salary.csv file to be cleaned more (remove duplicates)
-Pre_Batting_Value_Salary <- read.csv("Value_Salary.csv")
+#Now let's compare the players with above average excess value to the players with below average excess value.
 
-#show duplicates in R Markdown
-show_duplicates <- subset(Pre_Batting_Value_Salary, AutoNum == 1:6)
+excess_subset_100_plus <- subset(test2, test2$excess_value_plus > 100)
+excess_subset_100_minus <- subset(test2, test2$excess_value_plus < 100)
+
+mean(excess_subset_100_plus$age) #28.01
+mean(excess_subset_100_minus$age) #30.02
+
+#Now let's see how old the players were who had negative value.
+
+excess_subset_0_less <- subset(test2, test2$excess_value_plus < 0)
+mean(excess_subset_0_less$age) #30.34
+
+#So an interesting thing to do tomorrow 4/15 would be to create a table showing the mean age of excess value plus in one
+#column and the subset in the other column (excess value is less than 0, between 0 and 100, 100 and 300, 300 and 500
+#500 and 700, 700 and 900, 900+) and showing that as excess value goes up, age goes down (maybe you could also include
+#the average salaries(?) in that range of excess value plus). The point is, we want to show that we'll need to limit our
+#data to not include younger players, since our data would be limited to entirely young players and it's not super
+#valuable to say "Just sign good young players." That'll be the focus for tomorrow.
+
+
+#This is an old subset that isn't needed right now but I don't necessarily want to delete because it could be valuable.
+olds_money <- subset(test2, test2$age > 27 & test2$salary > 500000 & test2$salary < 10000000)
 
 
 
-#testing -- Does the same as split, apply, combine, except in a single line of code. This code removes playerID duplicates by year.
-Batting_Value_Salary <- Pre_Batting_Value_Salary %>%
-  distinct(playerID, yearID, .keep_all = TRUE)
+
+
+
+#I don't want to put batting average in R markdown as a variable yet so I'm storing it here as of 4/14
+###Batting average
+#The next variable we'll create is "Batting average." Simply put, batting average is how often a player gets a hit. 
+#This is one of the oldest and simplest statistics in baseball, and is still frequently used to determine how valuable 
+#a player is. 
+
+#We'll create batting average in our "Batting_Value_Salary" table by running the following:
+#  ```{r}
+#batting_average_raw <- Batting_Value_Salary$H / Batting_Value_Salary$AB
+#Batting_Value_Salary$batting_average <- format(batting_average_raw, digits = 2)
+#```
+#This gives us batting average as a new variable in our dataset, and it's been limited to three digits, as batting average 
+#is often represented as ".300," ".260," or ".185" Let's take a look:
+  
+#  ```{r}
+#name_average <- Batting_Value_Salary %>% select(name_common, batting_average)
+#head(name_average)
+#```
