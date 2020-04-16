@@ -636,13 +636,114 @@ The final variable we'll be working with right now is "Excess Value Plus." This 
 Batting_Value_Salary$excess_value_plus <- ((Batting_Value_Salary$excess_value / mean(Batting_Value_Salary$excess_value)*100))
 ```
 
+###Batting average, On-Base Percentage, Slugging Percentage, OPS, and ISO
+We've mostly created sabermetric statistics thus far, but in order to identify potential undervalued and overvalued players, it will help to use some traditional statistics as well.
+
+Batting average measures how many hits a player gets per at-bat, on-base percentage measures how often a player gets on-base per at-bat, and slugging percentage measures how many bases a player obtains per at-bat (essentially, how hard does he hit the ball).
+
+We'll calculate batting average as follows:
+```{r}
+pre_batting_average <- (Batting_Value_Salary$H)/(Batting_Value_Salary$AB)
+Batting_Value_Salary$batting_average <- round(pre_batting_average, digits = 3)
+```
+
+Next, we'll calculate on-base percentage:
+```{r}
+pre_on_base_percentage <- (Batting_Value_Salary$H + Batting_Value_Salary$BB + Batting_Value_Salary$HBP)/(Batting_Value_Salary$AB + Batting_Value_Salary$BB + Batting_Value_Salary$HBP + Batting_Value_Salary$SF)
+Batting_Value_Salary$on_base_percentage <- round(pre_on_base_percentage, digits = 3)
+```
+
+Then we'll calculate slugging percentage:
+```{r}
+pre_slugging_percentage <- ((Batting_Value_Salary$H - Batting_Value_Salary$X2B - Batting_Value_Salary$X3B - Batting_Value_Salary$HR) + (Batting_Value_Salary$X2B * 2) + (Batting_Value_Salary$X3B * 3) + (Batting_Value_Salary$HR * 4))/
+  (Batting_Value_Salary$AB)
+Batting_Value_Salary$slugging_percentage <- round(pre_slugging_percentage, digits = 3)
+```
+
+OPS, or on-base plus slugging, is a statistics that, simply put, combines on-base-percentage and slugging percentage. It's a quick way to see how often a guy got on baseball, and how hard he hit the ball to get on base.
+```{r}
+Batting_Value_Salary$OPS <- (Batting_Value_Salary$on_base_percentage) + (Batting_Value_Salary$slugging_percentage)
+```
+
+ISO, or isolated power, is another quick metric to determine how powerful someone was at the plate. The higher the ISO, the more bases someone accumulated relative to their batting average. It's not super helpful as a predictive statistic, but it
+will give us another tool to work with when we're doing our player similarity evaluations.
+```{r}
+Batting_Value_Salary$ISO <- (Batting_Value_Salary$slugging_percentage) - (Batting_Value_Salary$batting_average)
+```
+
+###Strikeout percentage and walk percentage
+The final two statisics we'll create for the time being are going to measure plate discipline. Generally speaking, a low strikeout percentage and a high walk percentage are positive predictors of future success. In order to identify potential breakout players, we'll want to quantify these statistics to use for future evaluation.
+```{r}
+pre_K_percentage <- ((Batting_Value_Salary$SO)/(Batting_Value_Salary$AB + Batting_Value_Salary$BB + Batting_Value_Salary$HBP + Batting_Value_Salary$SF)*100)
+Batting_Value_Salary$K_percentage <- round(pre_K_percentage, digits = 2)
+```
+
+```{r}
+pre_BB_percentage <- ((Batting_Value_Salary$BB)/(Batting_Value_Salary$AB + Batting_Value_Salary$BB + Batting_Value_Salary$HBP + Batting_Value_Salary$SF)*100)
+Batting_Value_Salary$BB_percentage <- round(pre_BB_percentage, digits = 2)
+```
+
+#Solving Issues by Subsetting
+
+Now that we have all of our variables created, we seem like we're just about set to start getting to the meat of the project, and determining which players are the most undervalued and which are the most overvalued. 
+
+However, some quick graphs will highlight an issue that we face, and this issue isn't so much with our data so much as it is with an underlying fact about Major League Baseball.
+
+##Graphing Average Salary and Excess Value by Age
+
+Since our main focus will be on the amount of excess value a player provided, and excess value is comprised of player value and salary, it will be key to focus on the average salaries for players in different age groups. This will demonstrate a bit where our problem lies.
+
+###Salary Plus
+
+First, we'll create a Salary+ metric that will normalize salary data relative to the average salary.
+```{r}
+Batting_Value_Salary$salary_plus <- ((Batting_Value_Salary$salary / mean(Batting_Value_Salary$salary)*100))
+```
+
+Next, we're going to calculate the mean salary by age, and then plot that to get a graphical representation of how salary changes as a player gets older.
+```{r}
+agg1 <- aggregate(x = Batting_Value_Salary$salary_plus, by = list(Batting_Value_Salary$age), FUN = mean)
+names(agg1)[1] <- "Age"
+names(agg1)[2] <- "Average Salary"
+```
+
+###Excess Value Plus
+The second part of our graph will be Excess Value Plus by age, so we'll calculate the mean Excess Value Plus by Age as follows:
+```{r}
+agg2 <- aggregate(x = Batting_Value_Salary$excess_value_plus, by = list(Batting_Value_Salary$age), FUN = mean)
+names(agg2)[1] <- "Age"
+names(agg2)[2] <- "Excess Value Plus"
+```
+
+###Our Graph
+Finally, we'll graph the two sets of data and illuminate what our issue is.
+```{r}
+plot1 <- plot(agg1$Age, agg1$`Average Salary`, xlab="Age", ylab="Salary Plus and Excess Value Plus", type = 'l', col = 'blue',
+              ylim = c(-100,400))
+par(new=TRUE)
+plot2 <- plot(agg2$Age, agg2$`Excess Value Plus`, xlab="", ylab="", type = 'l', col = 'red',
+              ylim = c(-100,400))
+legend("topright", legend=c("Excess Value Plus", "Salary Plus"),
+       col=c("red", "blue"), lty=1:1, cex=0.8)
+```
+
+As we can see from our plot, the most excess value comes from players in their early 20s, which is also where salary is the lowest. This initially seems like a huge breakthrough, with the solution being to simply acquire as many talented young players as possible.
+
+However, this is akin to advising someone to invest in Apple and Microsoft in 1980. Of course, it's easy to look back and say that drafting Mike Trout or Mookie Betts was the best course of action, and to an extent it was. However, that doesn't provide any valuable information going forward.
+
+Further, by nature of the MLB's contract structure, players are underpaid for the first 6 years of their careers. They're even more severely underpaid for the first three years of their careers, as they're playing for league minimum. That has a lot to do with why the salary plus statistic is below average (below 100) until players are roughly 28 or 29 years old.
+
+Once a player reaches six years of service time, they're eligible for free agency, in which they can sign with any team in the league. These are the players we're interested in evaluating. We want to find guys who were readily available to every team in the league, and provided the most excess value for the teams that took a risk on them.
+
+For this reason, it makes sense to subset our data to only include players who are 27 years old and older. If you look at the graph, there's a small peak in Excess Value Plus at 27, before a steep decline into a player's 30s. This could indicate that there is a small group of players who slipped through the cracks initially that provided great value in their late 20s at a very low cost.
+
+
 **Notes to self**
 
-Tomorrow, 4/16, I want to move a lot of the work from the test2 table into the actual table we'll be working with. I also
-want to create a table of Excess Value Plus and Salary Plus, and quantify the results we're seeing from our line graph.
-Once we do that, we can justify our age subset, and then start getting to work creating statistics like batting average,
-on base percentage, slugging percentage, and OPS. Once we have all of our statistics created (which may be before or after
-we subset), we can do a big multiple regression and see which statistics impact Excess Value Plus the most. I'm not sure
-what to do with "player_money_value" as a column, because it could be valuable. I'll keep that in the back of my mind.
+Tomorrow, 4/17, we'll start by subsetting our data to include only players who are 27 years old and older. Then, we'll limit ourselves to players making under $10 million, since spending a ton of money on these guys defeats the purpose. Based on that, we can take the Top however many players (5, 10, 25) and find their statistics in the year before their "breakout" seasons. Then we can aggregate those "seasons before" into one pre-breakout player. (As an aside, it may be good to pick and choose which players we use, for example maybe not Paul Goldschmidt since he was a top prospect, and maybe not the second or third Donaldson or Zobrist seasons). 
+
+After we've created our pre-breakout player, we can go back into our main database and create our similarity score for all players compared to our pre-breakout player. From there, we can determine which players were "poised" for a breakout.
+
+After that, we can get 2017 and 2018 data (maybe from the Lahman database again) and see which of our poised players actually broke out. Then we can discuss why/why not.
 
 
