@@ -638,6 +638,11 @@ Batting_Value_Salary$excess_value_plus <- ((Batting_Value_Salary$excess_value / 
 
 **Notes to self**
 
-Today we created some new variables which we'll use to do our major analyses. Tomorrow we'll work on showing that our data needs to be subsetted by age, explain why that is (and what causes that problem (low salaries for young players)), and then subset it as appropriate. It'll also be a good time to do our first plot, maybe of excess value plus against age? The first thing we'll want to do are the steps laid out in baseballValue.R and then proceed from there. Eventually it will be good to regress our dependent variables on "Excess_value_plus" or maybe "Value_plus" since those are what we want to measure eventually.
+Tomorrow, 4/16, I want to move a lot of the work from the test2 table into the actual table we'll be working with. I also
+want to create a table of Excess Value Plus and Salary Plus, and quantify the results we're seeing from our line graph.
+Once we do that, we can justify our age subset, and then start getting to work creating statistics like batting average,
+on base percentage, slugging percentage, and OPS. Once we have all of our statistics created (which may be before or after
+we subset), we can do a big multiple regression and see which statistics impact Excess Value Plus the most. I'm not sure
+what to do with "player_money_value" as a column, because it could be valuable. I'll keep that in the back of my mind.
 
 
