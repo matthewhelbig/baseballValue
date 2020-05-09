@@ -737,10 +737,22 @@ Once a player reaches six years of service time, they're eligible for free agenc
 
 For this reason, it makes sense to subset our data to only include players who are 27 years old and older. If you look at the graph, there's a small peak in Excess Value Plus at 27, before a steep decline into a player's 30s. This could indicate that there is a small group of players who slipped through the cracks initially that provided great value in their late 20s at a very low cost.
 
+##Subsetting our data
+
+Since we want to limit our data to players who are 27 and older, we'll need to subset our data to only include those players. We'll also want to create an additional filter, limiting ourselves to players making less than 10 million dollars per year. The reason for this is that if a player is already making 10 million dollars, they aren't really a diamond in the rough. They've already been properly values by their team, and aren't exactly readily available for any team to pick up. Since we want to limit ourselves to players that are readily available, it makes sense to create this salary limit.
+
+Our subset will be created as follows:
+```{r}
+age_salary_subset <- subset(Batting_Value_Salary, age > 26 & salary < 10000000)
+```
+
+#Finding breakout players
+
+Now that we've limited oursevles to the appropriate players, ones that aren't young phenoms or already established high-paid players, we can identify certain breakout players that we'll build our model breakout player off of.
 
 **Notes to self**
 
-Tomorrow, 4/17, we'll start by subsetting our data to include only players who are 27 years old and older. Then, we'll limit ourselves to players making under $10 million, since spending a ton of money on these guys defeats the purpose. Based on that, we can take the Top however many players (5, 10, 25) and find their statistics in the year before their "breakout" seasons. Then we can aggregate those "seasons before" into one pre-breakout player. (As an aside, it may be good to pick and choose which players we use, for example maybe not Paul Goldschmidt since he was a top prospect, and maybe not the second or third Donaldson or Zobrist seasons). 
+Based on that, we can take the Top however many players (5, 10, 25) and find their statistics in the year before their "breakout" seasons. Then we can aggregate those "seasons before" into one pre-breakout player. (As an aside, it may be good to pick and choose which players we use, for example maybe not Paul Goldschmidt since he was a top prospect, and maybe not the second or third Donaldson or Zobrist seasons). 
 
 After we've created our pre-breakout player, we can go back into our main database and create our similarity score for all players compared to our pre-breakout player. From there, we can determine which players were "poised" for a breakout.
 
