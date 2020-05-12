@@ -2,15 +2,20 @@ library(dplyr)
 library(data.table)
 library(janitor)
 
+test2 <- Batting_Value_Salary
 
+#Subset test2 to include just 2006 to 2010 to get our pool of players to choose from
+oh_six_to_oh_ten <- subset(test2, 2005 < yearID & yearID < 2011)
 
 #Subset of players 27 and older and salary below $10 million
-Older_than_26 <- subset(test2, age > 26 & salary < 10000000)
+Older_than_26 <- subset(oh_six_to_oh_ten, age > 26 & salary < 10000000)
 
 #Take top 30 sorted by excess value plus (fix variable names before applying to actual dataset)
-top_excess_value <- Older_than_26[ Older_than_26$excess_value_plus >= Older_than_26$excess_value_plus[order(Older_than_26$excess_value_plus, decreasing=TRUE)][30] , ]
+top_excess_value <- Older_than_26[ Older_than_26$excess_value_plus >= Older_than_26$excess_value_plus[order(Older_than_26$excess_value_plus, decreasing=TRUE)][50] , ]
 top2 <- top_excess_value[order(-top_excess_value$excess_value_plus),]
 View(top2)
+
+##LEFT OFF HERE 5/11
 
 #Keep only the ones we've identified as the ones we want for our model. Will provide explanations for why not the others later.
 post_breakout <- top2[ which(top2$AutoNum == 3042 | 
@@ -38,6 +43,10 @@ pre_breakout$PA <- pre_breakout$AB + pre_breakout$BB + pre_breakout$HBP + pre_br
 
 #Now that we've got all the info we need, we need to keep the selected columns for our Differential score project so that
 #we're not dealing with a ton of unnecessary columns
+
+#Don't just keep the selected columns because the diff score example did, run a regression to show that the ones we keep
+#are relevant to predicting future success.
+
 
 pre_diff_score_subset <- pre_breakout%>%
                         select(name_common, PA, AB, H, X2B, X3B, HR, BB, SO, SF, HBP)
@@ -85,11 +94,20 @@ diff_score_subset$BABIP <- round(test_BABIP, digits = 3)
 
 #The last thing we'll do before getting back to our markdown document and actually make these changes is work on our
 #difference score number.
-write.csv(diff_score_subset,'diff_score_subset.csv')
+
+#Need to put just the Total in a different subset to make the difference score stuff
+total_sub <- subset(diff_score_subset, name_common == "Total")
+
+diff_score_subset$DiffSc <- total_sub$BABIP - diff_score_subset$BABIP #This works, which can be used later to do the 
+#Difference score calculation stuff
 
 #Where we'll leave off today is that we got our difference score working in Excel. The first thing we'll do tomorrow is
 #make all of the changes we made in this R document in the actual R Markdown. Once that's done, we can look up a bit on
 #how to do our difference score stuff in R specifically. Once we have that, we can add it to our new "older than 25"
 #data frame which we'll create (older than 26 minus one since it's for a year before breakout) and then hopefully find the
-#five players with the smallest difference scores. After that, we can load up the 2017 data doing a lot of the same stuff
-#that we did to load in the 2006 to 2016 data and then see if our "pre-breakout" players actually broke out.
+#five players with the smallest difference scores. We aren't working with 2017 data at all since we're limited to 2006 to
+#2016, so we'll use 2006 to 2010 as our pool of players to build a model off of, and then 2011 to 2015 to identify if the
+#model is accurate.
+
+#Make sure to add the regression stuff first (regress the variables we want to include in our models on WAR to show
+#why we want to use those variables specifically)

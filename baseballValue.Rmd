@@ -26,7 +26,7 @@ Once the Lahman database is all settled in its own schema, we want to start to w
 
 #Setting things up in SQL
 
-The three tables that we're most interested in right now are "Batting," "Pitching," and "Salaries." The database has a ton of information that's interesting, but ultimately not super useful for our experiment. We're going to be mostly concerned with salary information from 2006 to 2016, since a lot of salary data before 2006 is incomplete and we're going to be running some predictive models on 2017 and 2018 data later.
+The three tables that we're most interested in right now are "Batting," "Pitching," and "Salaries." The database has a ton of information that's interesting, but ultimately not super useful for our experiment. For our project, we're going to use data from 2006 to 2010 to find our "model" player, and then use data from 2011 to 2016 to test if our hypothesis is true.
 
 ##"Subsetting" our Batting data
 We'll need to create a new table in SQL based on our criteria of only needing 2006 and later (this database ends in 2016).
@@ -202,7 +202,7 @@ Which is going to keep only the columns we're interested in, namely:
 names(kept_Columns)
 ```
 
-Next we're going to subset our data to keep it within the year range we're investigating (2006 to 2016), as well as limiting our data to be only batters, since we really aren't interested in how pitchers hit. Pitchers aren't paid based on their ability to hit, so batting statistics for pitchers aren't relevant to what we're studying.
+Next we're going to subset our data to keep it within the year range we're investigating (2006 to 2016), as well as limiting our data to be only batters, since we really aren't interested in how pitchers hit. Although the data we'll be analyzing is from 2006 to 2015, we'll also include 2016 as a potential year to see if our hypothesis is true. If a player is identified as a "pre-breakout" candidate in 2015, we can use 2016 to see if he did break out. Obviously, since the dataset doesn't include 2017, we won't be able to see if "pre-breakout" players in 2016 actually had good years in 2017. Pitchers aren't paid based on their ability to hit, so batting statistics for pitchers aren't relevant to what we're studying.
 ```{r}
 years_pitchers_Subset <- subset(kept_Columns, 2005 < year_ID & year_ID < 2017 & pitcher == "N")
 ```
@@ -324,7 +324,7 @@ INNER JOIN Batting_Value ON Batting_Salary.playerID = Batting_Value.player_ID AN
 ```
 
 
-As a note, this table works very well until it comes to the players who were traded in the middle of the season. When a player hasn't been traded, there is one row per year. However, when a player has been traded, we would expecto see two columns that year (one for the old team, one for the new team). However, we see four:
+As a note, this table works very well until it comes to the players who were traded in the middle of the season. When a player hasn't been traded, there is one row per year. However, when a player has been traded, we would expect to see two columns that year (one for the old team, one for the new team). However, we see four:
 
 ```{r, echo=FALSE, message=FALSE}
 Pre_Batting_Value_Salary <- read.csv("Value_Salary.csv")
@@ -355,226 +355,7 @@ head(Batting_Value_Salary[,1:7])
 
 This is a nice way of using pre-built libraries to limit the amount of code that you need to write. The dplyr library has a ton of functions like this, and we'll make use of them when we further analyze our data in R.
 
-#Reading in our pitching data
-Our next step will be reading in our pitching data.
-
-##Subsetting our pitching data
-First we create our container in SQL:
-
-```{sql, eval = FALSE}
-CREATE TABLE Pitching_post_2006
-LIKE Pitching
-```
-
-Then we load our data into our table:
-
-```{sql, eval = FALSE}
-INSERT INTO Pitching_post_2006
-SELECT *
-FROM Pitching;
-```
-
-Then we do what we did with Batting and Salary and limit our data to just 2006-2016:
-```{sql, eval = FALSE}
-DELETE FROM Pitching_post_2006
-WHERE yearID < 2006
-```
-
-We create our Pitching_Salary table:
-```{sql, eval = FALSE}
-CREATE TABLE Pitching_Salary (
-    AutoNum int NOT NULL AUTO_INCREMENT,
-    playerID varchar(255),
-    birthyear int,
-    yearID int,
-    salary int,
-    stint int,
-    teamID varchar(255),
-    lgID varchar(255),
-    W int,
-    L int,
-    G int,
-    GS int,
-    CG int,
-    SHO int,
-    SV int,
-    IPouts int,
-    H int,
-    ER int,
-    HR int,
-    BB int,
-    SO int,
-    ERA float,
-    BK int,
-    R int,
-	PRIMARY KEY (AutoNum)
-);
-```
-
-Then we load our Pitching and Salary data into our new table:
-```{sql, eval = FALSE}
-INSERT INTO Pitching_Salary
-SELECT 0, 
-Pitching_post_2006.playerID, 
-Player_Salary_Info.birthyear, 
-Player_Salary_Info.yearID, 
-Player_Salary_Info.salary, 
-Pitching_post_2006.stint, 
-Pitching_post_2006.teamID, 
-Pitching_post_2006.lgID, 
-Pitching_post_2006.W, 
-Pitching_post_2006.L, 
-Pitching_post_2006.G, 
-Pitching_post_2006.GS, 
-Pitching_post_2006.CG, 
-Pitching_post_2006.SHO, 
-Pitching_post_2006.SV, 
-Pitching_post_2006.IPouts, 
-Pitching_post_2006.H, 
-Pitching_post_2006.ER,
-Pitching_post_2006.HR, 
-Pitching_post_2006.BB, 
-Pitching_post_2006.SO, 
-Pitching_post_2006.ERA, 
-Pitching_post_2006.BK, 
-Pitching_post_2006.R
-FROM Pitching_post_2006
-INNER JOIN Player_Salary_Info ON Player_Salary_Info.playerID = Pitching_post_2006.playerID 
-AND Player_Salary_Info.yearID = Pitching_post_2006.yearID
-```
-
-So now we're at the point where we need to go back to Baseball-Reference and get our value data. For batters, it was called "war_daily_bat," and for pitchers it's "war_daily_pitch." We take a look at the data in R, and see the following:
-
-```{r}
-Daily_pitch <- read.csv("war_daily_pitch.csv")
-names(Daily_pitch)
-```
-
-Limit ourselves to the names we want, and show the new column names
-```{r}
-pitch_kept_columns = select(Daily_pitch, 1, 2, 4, 5, 6, 29, 41)
-names(pitch_kept_columns)
-```
-
-Subset to limit ourselves to the years we want, and write it to csv so we can export it to SQL to combine with our Pitching Salary table
-```{r}
-Pitching_value <- subset(pitch_kept_columns, 2005 < year_ID & year_ID < 2017)
-
-write.csv(Pitching_value, "Pitching_Value.csv")
-```
-
-Create our pitching value container in SQL:
-```{sql, eval = FALSE}
-CREATE TABLE Pitching_Value (
-    AutoNum int NOT NULL AUTO_INCREMENT,
-    name_common varchar(255),
-    age int,
-    player_ID varchar(255),
-    year_ID int,
-    team_ID varchar(255),
-    WAR DECIMAL(4,2),
-    ERA_plus int,
-	PRIMARY KEY (AutoNum)
-);
-```
-
-Then load pitching value with data:
-```{sql, eval = FALSE}
-LOAD DATA LOCAL INFILE '/filepath/Pitching_Value.csv'
-INTO TABLE Pitching_Value FIELDS TERMINATED BY ','
-ENCLOSED BY '"' LINES TERMINATED BY '\n'
-IGNORE 1 LINES
-```
-
-Now we want to combine Pitching_Value with Pitching_Salary. We start by creating the container for our data:
-```{sql, eval = FALSE}
-CREATE TABLE Pitching_Value_Salary (
-    AutoNum int NOT NULL AUTO_INCREMENT,
-    playerID varchar(255),
-    name_common varchar(255),
-    yearID int,
-    age int,
-    salary int,
-    stint int,
-    teamID varchar(255),
-    lgID varchar(255),
-    W int,
-    L int,
-    G int,
-    GS int,
-    CG int,
-    SHO int,
-    SV int,
-    IPouts int,
-    H int,
-    ER int,
-    HR int,
-    BB int,
-    SO int,
-    ERA float,
-    BK int,
-    R int,
-    WAR DECIMAL(4,2),
-    ERA_plus int,
-	PRIMARY KEY (AutoNum)
-);
-```
-
-Then we load in our data:
-```{sql, eval = FALSE}
-INSERT INTO Pitching_Value_Salary
-SELECT DISTINCT 0,
-Pitching_Salary.playerID,
-Pitching_Value.name_common,
-Pitching_Salary.yearID,
-Pitching_Value.age,
-Pitching_Salary.salary,
-Pitching_Salary.stint,
-Pitching_Salary.teamID,
-Pitching_Salary.lgID,
-Pitching_Salary.W,
-Pitching_Salary.L,
-Pitching_Salary.G,
-Pitching_Salary.GS,
-Pitching_Salary.CG,
-Pitching_Salary.SHO,
-Pitching_Salary.SV,
-Pitching_Salary.IPouts,
-Pitching_Salary.H,
-Pitching_Salary.ER,
-Pitching_Salary.HR,
-Pitching_Salary.BB,
-Pitching_Salary.SO,
-Pitching_Salary.ERA,
-Pitching_Salary.BK,
-Pitching_Salary.R,
-Pitching_Value.WAR,
-Pitching_Value.ERA_plus    
-FROM Pitching_Salary
-INNER JOIN Pitching_Value ON Pitching_Salary.playerID = Pitching_Value.player_ID AND Pitching_Salary.yearID = Pitching_Value.year_ID
-```
-
-
-We have the same problem with duplicates that we did with our Batting data. Taking a look at the following, we can see those duplicates:
-```{r}
-Pre_Pitching_Value_Salary <- read.csv("Pitching_Value_Salary.csv")
-show_duplicates2 <- subset(Pre_Pitching_Value_Salary, name_common == "Jeremy Accardo")
-head(show_duplicates2[,1:7])
-```
-
-However, the same distinct function we used from Batting will work here as well:
-```{r}
-Pitching_Value_Salary <- Pre_Pitching_Value_Salary %>%
-  distinct(playerID, yearID, .keep_all = TRUE)
-```
-
-Taking a look to see if those duplicates are gone:
-```{r}
-show_duplicates3 <- subset(Pitching_Value_Salary, name_common == "Jeremy Accardo")
-head(show_duplicates3[,1:7])
-```
-
-There we go! Our Batting Value and Pitching Value data is all ready for analysis in R. It took a lot of behind the scenes work, but it left us with some very high quality data on which to test our hypotheses.
+There we go! Our Batting Value data is all ready for analysis in R. It took a lot of behind the scenes work, but it left us with some very high quality data on which to test our hypotheses.
 
 #Working with our Batting Value Data
 
@@ -674,8 +455,8 @@ Batting_Value_Salary$ISO <- (Batting_Value_Salary$slugging_percentage) - (Battin
 ###Strikeout percentage and walk percentage
 The final two statisics we'll create for the time being are going to measure plate discipline. Generally speaking, a low strikeout percentage and a high walk percentage are positive predictors of future success. In order to identify potential breakout players, we'll want to quantify these statistics to use for future evaluation.
 ```{r}
-pre_K_percentage <- ((Batting_Value_Salary$SO)/(Batting_Value_Salary$AB + Batting_Value_Salary$BB + Batting_Value_Salary$HBP + Batting_Value_Salary$SF)*100)
-Batting_Value_Salary$K_percentage <- round(pre_K_percentage, digits = 2)
+pre_SO_percentage <- ((Batting_Value_Salary$SO)/(Batting_Value_Salary$AB + Batting_Value_Salary$BB + Batting_Value_Salary$HBP + Batting_Value_Salary$SF)*100)
+Batting_Value_Salary$SO_percentage <- round(pre_SO_percentage, digits = 2)
 ```
 
 ```{r}
@@ -683,6 +464,52 @@ pre_BB_percentage <- ((Batting_Value_Salary$BB)/(Batting_Value_Salary$AB + Batti
 Batting_Value_Salary$BB_percentage <- round(pre_BB_percentage, digits = 2)
 ```
 
+##Context-free Strikeout and walk percentages
+
+One issue we'll run into with strikeout and walk percentages is that those totals vary by year in the league. From 2006 to 2016, strikeouts varied from 16.8% in 2006 to 21.1% in 2016. Similarly, walk rates ranged from 7.6% in 2014 to 8.9% in 2009.
+
+If we didn't correct for context, then a strikeout rate of 19% could be either above-average or below-average depending on the year. In order to solve this, we'll once again do a split-apply-combine technique to create our variables.
+
+###Strikeout and walk percentages split-apply-combine
+```{r}
+year <- split(Batting_Value_Salary, Batting_Value_Salary$yearID)
+
+year$`2006`$league_SO_percentage <- 16.8
+year$`2006`$league_BB_percentage <- 8.4
+year$`2007`$league_SO_percentage <- 17.1
+year$`2007`$league_BB_percentage <- 8.5
+year$`2008`$league_SO_percentage <- 17.5
+year$`2008`$league_BB_percentage <- 8.7
+year$`2009`$league_SO_percentage <- 18.0
+year$`2009`$league_BB_percentage <- 8.9
+year$`2010`$league_SO_percentage <- 18.5
+year$`2010`$league_BB_percentage <- 8.5
+year$`2011`$league_SO_percentage <- 18.6
+year$`2011`$league_BB_percentage <- 8.1
+year$`2012`$league_SO_percentage <- 19.8
+year$`2012`$league_BB_percentage <- 8.0
+year$`2013`$league_SO_percentage <- 19.9
+year$`2013`$league_BB_percentage <- 7.9
+year$`2014`$league_SO_percentage <- 20.4
+year$`2014`$league_BB_percentage <- 7.6
+year$`2015`$league_SO_percentage <- 20.4
+year$`2015`$league_BB_percentage <- 7.7
+year$`2016`$league_SO_percentage <- 21.1
+year$`2016`$league_BB_percentage <- 8.2
+
+Batting_Value_Salary <- rbind(year$`2006`, year$`2007`, year$`2008`, year$`2009`, year$`2010`, year$`2011`, 
+               year$`2012`, year$`2013`, year$`2014`, year$`2015`, year$`2016`)
+```
+###Creating SO+ and BB+
+```{r}
+pre_SO_plus <- 
+  ((Batting_Value_Salary$SO_percentage / Batting_Value_Salary$league_SO_percentage*100))
+Batting_Value_Salary$SO_plus <- round(pre_SO_plus, digits = 2)
+
+pre_BB_plus <- 
+  ((Batting_Value_Salary$BB_percentage / Batting_Value_Salary$league_BB_percentage*100))
+Batting_Value_Salary$BB_plus <- round(pre_BB_plus, digits = 2)
+```
 #Solving Issues by Subsetting
 
 Now that we have all of our variables created, we seem like we're just about set to start getting to the meat of the project, and determining which players are the most undervalued and which are the most overvalued. 
@@ -755,7 +582,5 @@ Now that we've limited oursevles to the appropriate players, ones that aren't yo
 Based on that, we can take the Top however many players (5, 10, 25) and find their statistics in the year before their "breakout" seasons. Then we can aggregate those "seasons before" into one pre-breakout player. (As an aside, it may be good to pick and choose which players we use, for example maybe not Paul Goldschmidt since he was a top prospect, and maybe not the second or third Donaldson or Zobrist seasons). 
 
 After we've created our pre-breakout player, we can go back into our main database and create our similarity score for all players compared to our pre-breakout player. From there, we can determine which players were "poised" for a breakout.
-
-After that, we can get 2017 and 2018 data (maybe from the Lahman database again) and see which of our poised players actually broke out. Then we can discuss why/why not.
 
 
