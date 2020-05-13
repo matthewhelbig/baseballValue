@@ -193,7 +193,7 @@ library(dplyr)
 ```
 
 ```{r}
-kept_Columns = select(Daily_bat, 1, 2, 4, 5, 6, 31, 32, 33, 36, 47)
+kept_Columns = select(Daily_bat, 1, 2, 4, 5, 6, 9, 31, 32, 33, 36, 47)
 ```
 
 Which is going to keep only the columns we're interested in, namely:
@@ -210,7 +210,7 @@ years_pitchers_Subset <- subset(kept_Columns, 2005 < year_ID & year_ID < 2017 & 
 Finally, we'll remove the pitcher column, since all of our kept players are going to be batters:
 
 ```{r}
-Batting_value <- select(years_pitchers_Subset, -9)
+Batting_value <- select(years_pitchers_Subset, -10)
 ```
 
 After all this, we're ready to export this data from R and into SQL so we can join it with our Batting_Salary table.
@@ -229,6 +229,7 @@ CREATE TABLE Batting_Value (
     player_ID varchar(255),
     year_ID int,
     team_ID varchar(255),
+    PA int,
     WAR DECIMAL(4,2),
     WAR_def DECIMAL(4,2),
     WAR_off DECIMAL(4,2),
@@ -261,6 +262,7 @@ CREATE TABLE Value_Salary (
     teamID varchar(255),
     lgID varchar(255),
     G int,
+    PA int,
     AB int,
     R int,
     H int,
@@ -299,6 +301,7 @@ Batting_Salary.stint,
 Batting_Salary.teamID,
 Batting_Salary.lgID,
 Batting_Salary.G,
+Batting_Value.PA,
 Batting_Salary.AB,
 Batting_Salary.R,
 Batting_Salary.H,
@@ -344,16 +347,21 @@ We could subset our data by year, write a function that removes duplicates for e
 
 If we execute the following command:
 ```{r}
-Batting_Value_Salary <- Pre_Batting_Value_Salary %>%
+Batting_Value_Salary_2 <- Pre_Batting_Value_Salary %>%
   distinct(playerID, yearID, .keep_all = TRUE)
 ```
 
 We can see that we've successfully removed the duplicates:
 ```{r, echo = FALSE}
-head(Batting_Value_Salary[,1:7])
+head(Batting_Value_Salary_2[,1:7])
 ```
 
 This is a nice way of using pre-built libraries to limit the amount of code that you need to write. The dplyr library has a ton of functions like this, and we'll make use of them when we further analyze our data in R.
+
+Additionally, we'll want to remove anyone who changed teams in the middle of the season, as the formatting of our database made the data for these players essentially impossible to work with. We'll do so with the following subset:
+```{r}
+Batting_Value_Salary <- subset(Batting_Value_Salary_2, Batting_Value_Salary_2$PA >= Batting_Value_Salary_2$AB)
+```
 
 There we go! Our Batting Value data is all ready for analysis in R. It took a lot of behind the scenes work, but it left us with some very high quality data on which to test our hypotheses.
 
@@ -441,7 +449,7 @@ pre_slugging_percentage <- ((Batting_Value_Salary$H - Batting_Value_Salary$X2B -
 Batting_Value_Salary$slugging_percentage <- round(pre_slugging_percentage, digits = 3)
 ```
 
-OPS, or on-base plus slugging, is a statistics that, simply put, combines on-base-percentage and slugging percentage. It's a quick way to see how often a guy got on baseball, and how hard he hit the ball to get on base.
+OPS, or on-base plus slugging, is a statistic that, simply put, combines on-base-percentage and slugging percentage. It's a quick way to see how often a guy got on baseball, and how hard he hit the ball to get on base.
 ```{r}
 Batting_Value_Salary$OPS <- (Batting_Value_Salary$on_base_percentage) + (Batting_Value_Salary$slugging_percentage)
 ```
@@ -454,13 +462,14 @@ Batting_Value_Salary$ISO <- (Batting_Value_Salary$slugging_percentage) - (Battin
 
 ###Strikeout percentage and walk percentage
 The final two statisics we'll create for the time being are going to measure plate discipline. Generally speaking, a low strikeout percentage and a high walk percentage are positive predictors of future success. In order to identify potential breakout players, we'll want to quantify these statistics to use for future evaluation.
+
 ```{r}
-pre_SO_percentage <- ((Batting_Value_Salary$SO)/(Batting_Value_Salary$AB + Batting_Value_Salary$BB + Batting_Value_Salary$HBP + Batting_Value_Salary$SF)*100)
+pre_SO_percentage <- ((Batting_Value_Salary$SO)/(Batting_Value_Salary$PA)*100)
 Batting_Value_Salary$SO_percentage <- round(pre_SO_percentage, digits = 2)
 ```
 
 ```{r}
-pre_BB_percentage <- ((Batting_Value_Salary$BB)/(Batting_Value_Salary$AB + Batting_Value_Salary$BB + Batting_Value_Salary$HBP + Batting_Value_Salary$SF)*100)
+pre_BB_percentage <- ((Batting_Value_Salary$BB)/(Batting_Value_Salary$PA)*100)
 Batting_Value_Salary$BB_percentage <- round(pre_BB_percentage, digits = 2)
 ```
 
@@ -566,11 +575,11 @@ For this reason, it makes sense to subset our data to only include players who a
 
 ##Subsetting our data
 
-Since we want to limit our data to players who are 27 and older, we'll need to subset our data to only include those players. We'll also want to create an additional filter, limiting ourselves to players making less than 10 million dollars per year. The reason for this is that if a player is already making 10 million dollars, they aren't really a diamond in the rough. They've already been properly values by their team, and aren't exactly readily available for any team to pick up. Since we want to limit ourselves to players that are readily available, it makes sense to create this salary limit.
+Since we want to limit our data to players who are 27 and older, we'll need to subset our data to only include those players. We'll also want to create an additional filter, limiting ourselves to players making less than 3 million dollars per year. The reason for this is that if a player is already making 3 million dollars, they aren't really a diamond in the rough. They've already been properly valued by their team, and aren't exactly readily available for any team to pick up. Since we want to limit ourselves to players that are readily available, it makes sense to create this salary limit.
 
 Our subset will be created as follows:
 ```{r}
-age_salary_subset <- subset(Batting_Value_Salary, age > 26 & salary < 10000000)
+age_salary_subset <- subset(Batting_Value_Salary, age > 26 & salary < 3000000)
 ```
 
 #Finding breakout players
