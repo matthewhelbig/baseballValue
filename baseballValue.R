@@ -4,38 +4,6 @@ library(janitor)
 
 test2 <- Batting_Value_Salary
 
-#Subset test2 to include just 2006 to 2010 to get our pool of players to choose from
-oh_six_to_oh_ten <- subset(test2, 2005 < yearID & yearID < 2011)
-
-#Subset of players 27 and older and salary below $3 million
-Older_than_26 <- subset(oh_six_to_oh_ten, age > 26 & salary < 3000000)
-
-#Take top 30 sorted by excess value plus (fix variable names before applying to actual dataset)
-top_excess_value <- Older_than_26[ Older_than_26$excess_value_plus >= Older_than_26$excess_value_plus[order(Older_than_26$excess_value_plus, decreasing=TRUE)][30] , ]
-top2 <- top_excess_value[order(-top_excess_value$excess_value_plus),]
-View(top2)
-
-
-#Keep only the ones we've identified as the ones we want for our model. Will provide explanations for why not the others later.
-post_breakout <- top2[ which(top2$AutoNum == 4836 | 
-                       top2$AutoNum == 1633 |
-                       top2$AutoNum == 4960 |
-                       top2$AutoNum == 4609 |
-                       top2$AutoNum == 4692
-                       ), ]
-View(post_breakout)
-
-#The last thing I'll do today is create a dataset from our original dataset that just has our pre-breakout players, so we
-#can build our "average" player based off those players.
-
-pre_breakout <- test2[ which(test2$AutoNum == 4691 | 
-                             test2$AutoNum == 1234 |
-                             test2$AutoNum == 4796 |
-                             test2$AutoNum == 4441 |
-                             test2$AutoNum == 4542
-                             ),]
-View(pre_breakout)
-
 
 #Now that we've got all the info we need, we need to keep the selected columns for our Differential score project so that
 #we're not dealing with a ton of unnecessary columns
@@ -94,6 +62,7 @@ diff_score_subset$ISO <- (diff_score_subset$slugging_percentage) - (diff_score_s
 
 #Need to put just the Total in a different subset to make the difference score stuff
 total_sub <- subset(diff_score_subset, name_common == "Total")
+View(total_sub)
 
 #We've got our difference score working in our pre-breakout players.
 
@@ -104,7 +73,6 @@ temp_DiffSc <- ((total_sub$True_BB_plus - diff_score_subset$True_BB_plus)/total_
   ((total_sub$on_base_percentage - diff_score_subset$on_base_percentage)/total_sub$on_base_percentage) +
   ((total_sub$slugging_percentage - diff_score_subset$slugging_percentage)/total_sub$slugging_percentage)
 
-diff_score_subset$DiffSc <- temp_DiffSc * 100
 
 #Now we can test the difference score formula in our "test2" data frame.
 
@@ -120,11 +88,26 @@ test2$DiffSc <- abs(temp_DiffSc2 * 100)
 #Subset so it's just 2011 to 2015
 eleven_to_fifteen <- subset(test2, 2010 < yearID & yearID < 2016)
 
-#Subset again so it's just players older than 25 making under $3 million
-Older_than_25 <- subset(eleven_to_fifteen, age > 25 & salary < 1000000 & WAR < 1.47 & PA > 99 & age < 36)
 
-#We'll leave off today (5/12) having gotten our difference score working and our five players identified. I want to clean
-#up a lot of this test environment tomorrow, and then finish identifying/explaining the five players the model chose.
-#After that, we can move everything into the actual R Markdown, and include some analysis on which players we built the
-#model off of and why, who our model chose and why, and some final conclusions. After that, all that's left to do is 
-#polish up the R Markdown document so that it's coherent, concise, and entertaining to read.
+#Subset again so it's just players older than 25 making under $3 million
+Older_than_25 <- subset(eleven_to_fifteen, salary < 3000000 & age > 25 & excess_value_plus < 100)
+
+pre_breakout_two <- Older_than_25[ which(Older_than_25$AutoNum == 3785 | 
+                                           Older_than_25$AutoNum == 3715 |
+                                           Older_than_25$AutoNum == 5242 |
+                                           Older_than_25$AutoNum == 3243 |
+                                           Older_than_25$AutoNum == 2218
+),]
+View(pre_breakout_two)
+
+post_breakout_two <- Batting_Value_Salary[ which(Batting_Value_Salary$AutoNum == 4155 | 
+                                                   Batting_Value_Salary$AutoNum == 4090 |
+                                                   Batting_Value_Salary$AutoNum == 5433 |
+                                                   Batting_Value_Salary$AutoNum == 3630 |
+                                                   Batting_Value_Salary$AutoNum == 2581
+), ]
+View(post_breakout_two)
+
+#End of day 5/18. I changed up the metric for finding players a bit, and everything has been updated in this R document. I
+#just need to move all the analysis from the R document here to the R Markdown, and then the analysis is done. Then I just
+#need to edit the paper itself.

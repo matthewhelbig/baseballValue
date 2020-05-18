@@ -577,14 +577,63 @@ For this reason, it makes sense to subset our data to only include players who a
 
 Since we want to limit our data to players who are 27 and older, we'll need to subset our data to only include those players. We'll also want to create an additional filter, limiting ourselves to players making less than 3 million dollars per year. The reason for this is that if a player is already making 3 million dollars, they aren't really a diamond in the rough. They've already been properly valued by their team, and aren't exactly readily available for any team to pick up. Since we want to limit ourselves to players that are readily available, it makes sense to create this salary limit.
 
-Our subset will be created as follows:
+We'll also want to limit ourselves to the years 2007 to 2010. We're going with 2007 because our dataset is from 2006 to 2016. If we identify a breakout player from 2007, we can use the 2006 data to see what they were like in their pre-breakout season. We wouldn't be able to do the same for a player who broke out in 2006, since we don't have 2005 data. We'll use the years 2007 to 2010 to find the players to populate our model, and then test that model on the years 2011 to 2015 to see how effective it was.
+
+Our subsets will be created as follows:
 ```{r}
-age_salary_subset <- subset(Batting_Value_Salary, age > 26 & salary < 3000000)
+oh_six_to_oh_ten <- subset(Batting_Value_Salary, 2006 < yearID & yearID < 2011)
+age_salary_subset <- subset(oh_six_to_oh_ten, age > 26 & salary < 3000000)
 ```
 
 #Finding breakout players
 
-Now that we've limited oursevles to the appropriate players, ones that aren't young phenoms or already established high-paid players, we can identify certain breakout players that we'll build our model breakout player off of.
+Now that we've limited ourselves to the appropriate players, ones that aren't young phenoms or already established high-paid players, we can identify certain breakout players that we'll build our model breakout player off of. We'll identify the top 30 players in terms of "excess value plus." That is, these are the players who provided the most value relative to how much they made, adjusted to be context-independent. This reveals:
+
+```{r}
+temp_top_excess_value <- age_salary_subset[ age_salary_subset$excess_value_plus >= age_salary_subset$excess_value_plus[order(age_salary_subset$excess_value_plus, decreasing=TRUE)][50] , ]
+top_excess_value <- temp_top_excess_value[order(-temp_top_excess_value$excess_value_plus),]
+head(top_excess_value)
+```
+
+While we identified fifty total players who provided considerable excess value, for the purpose of our model we'll be picking five. For various reasons, a majority of the players that were identified via the excess value plus leaderboards did not fit our criteria. In some instances, it was star players who simply had a rare bad season the year before. In other instances, it was a veteran who was signing for a cheap deal at the end of his career.
+
+We also want to limit our model to players who were below average in value the year before. Teams are very adept already at determining value, so if a player was providing above-average value, it seems likely that they wouldn't be willing to easily part with that player. 
+
+The five players we'll use to create our "model" player are below:
+
+```{r}
+post_breakout <- top_excess_value[ which(top_excess_value$AutoNum == 4836 | 
+                       top_excess_value$AutoNum == 4609 |
+                       top_excess_value$AutoNum == 4692 |
+                       top_excess_value$AutoNum == 4750 |
+                       top_excess_value$AutoNum == 4749
+                       ), ]
+head(post_breakout[,1:7])
+```
+
+Since we're basing the most valuable players on how much excess value they provide, let's look at how much extra value these players provided in their breakout years than in the seasons the year before their breakout.
+```{r, echo=FALSE}
+pre_breakout <- Batting_Value_Salary[ which(Batting_Value_Salary$AutoNum == 4691 | 
+                             Batting_Value_Salary$AutoNum == 4441 |
+                             Batting_Value_Salary$AutoNum == 4542 |
+                             Batting_Value_Salary$AutoNum == 4602 |
+                             Batting_Value_Salary$AutoNum == 4601
+                             ),]
+```
+
+```{r}
+mean(post_breakout$excess_value_plus)
+mean(pre_breakout$excess_value_plus)
+mean(post_breakout$excess_value_plus) / mean(pre_breakout$excess_value_plus)
+```
+
+In their breakout seasons, this group of players provided excess value at a rate of five times average, compared to a rate of roughly half of average in their pre-breakout seasons. If a team could have successfully identified these players, they would have been able to see an almost eleven-fold increase in extra value, just from five players. In terms of dollars, these breakout players provided the below amount:
+
+```{r}
+sum(post_breakout$excess_value)
+```
+
+That's over $130 million in excess value, just from five players who were below average in value provided the season before. This is why this prediction model is so valuable. If we can identify the characteristics that led to these players breaking out, then we can attempt to recreate that level of extra value for ourselves.
 
 **Notes to self**
 
