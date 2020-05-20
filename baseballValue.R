@@ -5,15 +5,6 @@ library(janitor)
 test2 <- Batting_Value_Salary
 
 
-#Now that we've got all the info we need, we need to keep the selected columns for our Differential score project so that
-#we're not dealing with a ton of unnecessary columns
-
-#Don't just keep the selected columns because the diff score example did, run a regression to show that the ones we keep
-#are relevant to predicting future success.
-
-fit <- lm(WAR_Off ~ BB_percentage + SO_percentage + ISO + OPS, data = test2)
-summary(fit)
-
 pre_diff_score_subset <- pre_breakout%>%
                         select(name_common, PA, AB, H, X2B, X3B, HR, BB, SO, SF, HBP, SO_plus, BB_plus)
 View(pre_diff_score_subset)

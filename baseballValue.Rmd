@@ -592,7 +592,7 @@ Now that we've limited ourselves to the appropriate players, ones that aren't yo
 ```{r}
 temp_top_excess_value <- age_salary_subset[ age_salary_subset$excess_value_plus >= age_salary_subset$excess_value_plus[order(age_salary_subset$excess_value_plus, decreasing=TRUE)][50] , ]
 top_excess_value <- temp_top_excess_value[order(-temp_top_excess_value$excess_value_plus),]
-head(top_excess_value)
+head(top_excess_value[,1:7])
 ```
 
 While we identified fifty total players who provided considerable excess value, for the purpose of our model we'll be picking five. For various reasons, a majority of the players that were identified via the excess value plus leaderboards did not fit our criteria. In some instances, it was star players who simply had a rare bad season the year before. In other instances, it was a veteran who was signing for a cheap deal at the end of his career.
@@ -635,10 +635,31 @@ sum(post_breakout$excess_value)
 
 That's over $130 million in excess value, just from five players who were below average in value provided the season before. This is why this prediction model is so valuable. If we can identify the characteristics that led to these players breaking out, then we can attempt to recreate that level of extra value for ourselves.
 
+##Choosing the variables that make up our model (using a regression)
+
+One of the most important aspects, if not the most important aspect, is determing which characteristics of our five model players played the biggest role in those players having breakout seasons the next year. If we look at the options we have, we can see the following:
+
+```{r, echo=FALSE}
+names(pre_breakout)
+```
+
+We have close to fifty variables that could be predictive of future success. However, if we look at some of those variables more closely, we see that many of them are virtually the same as other variables, or they're subsumed under other variables. For example, strikeout percentage and walk percentage are both less-specific versions of Strikeouts+ and Walks+. Additionally, hits, doubles, triples, and home runs can all be quickly represented by ISO. Keeping this in mind, many of these variables can be excluded, and we'll have just a few that we'll need to test for statistical significance.
+
+We'll be running a multivariable linear regression to identify if the variables we'd like to use to form our model are statistically significant. One important thing to note is that we'll be using Offensive WAR as our dependent variable, since all of the data we have is only for offense. It's unlikely that there would be any relationship (outside of random noise) between offensive statistics and Defensive WAR, so for our regression we'll be focusing on offense.
+
+```{r}
+library(jtools)
+offensive_fit <- lm(WAR_Off ~ BB_percentage + SO_percentage + ISO + OPS, data = Batting_Value_Salary)
+summ(offensive_fit)
+```
+
+From this, we can see that the four variables we picked are all statistically significant due to the low p-values. Additionally, we see a positive relationship between walks and offensive value. This makes sense, as the more someone draws walks, the more times they're on base, and consequently the more runs they can score (and value is derived from runs).
+
+On the opposite end, we see that strikeouts detract from value at roughly the same rate that walks add to value. Additionally, a one-unit increase in ISO and OPS leads to a 5 to 6 win increase in offensive WAR, on average.
+
+
 **Notes to self**
 
-Based on that, we can take the Top however many players (5, 10, 25) and find their statistics in the year before their "breakout" seasons. Then we can aggregate those "seasons before" into one pre-breakout player. (As an aside, it may be good to pick and choose which players we use, for example maybe not Paul Goldschmidt since he was a top prospect, and maybe not the second or third Donaldson or Zobrist seasons). 
-
-After we've created our pre-breakout player, we can go back into our main database and create our similarity score for all players compared to our pre-breakout player. From there, we can determine which players were "poised" for a breakout.
+On 5/20, finish explaining why we'll use the variables for our predictive model that we'll use. Then just follow the process in R and things should be good to go.
 
 
