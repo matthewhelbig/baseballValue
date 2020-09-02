@@ -653,13 +653,23 @@ offensive_fit <- lm(WAR_Off ~ BB_percentage + SO_percentage + ISO + OPS, data = 
 summ(offensive_fit)
 ```
 
-From this, we can see that the four variables we picked are all statistically significant due to the low p-values. Additionally, we see a positive relationship between walks and offensive value. This makes sense, as the more someone draws walks, the more times they're on base, and consequently the more runs they can score (and value is derived from runs).
+From this, we can see that the three variables we picked are all statistically significant due to the low p-values. Additionally, we see a positive relationship between walks and offensive value. This makes sense, as the more someone draws walks, the more times they're on base, and consequently the more runs they can score (and value is derived from runs).
 
-On the opposite end, we see that strikeouts detract from value at roughly the same rate that walks add to value. Additionally, a one-unit increase in ISO and OPS leads to a 5 to 6 win increase in offensive WAR, on average.
+On the opposite end, we see that strikeouts detract from value at roughly the same rate that walks add to value. Additionally, a one-unit increase in ISO leads to a 15 win increase in Offensive wins above replacement. This means that on average, going from an ISO of .100 to .200 will increased expected wins above replacement by 1.5.
+
+**Also address OPS in the above example**
 
 
 **Notes to self**
 
-On 5/20, finish explaining why we'll use the variables for our predictive model that we'll use. Then just follow the process in R and things should be good to go.
+On 9/2, we'll want to do the following things:
 
-
+1. Test for collinearity and explain why it's important
+2. Add in components that will make up difference score model
+3. Create variables and 'Total' column, then create variables again
+4. Do the difference scores
+5. Subset by year and age
+6. Identify which players the model chose, and why the ones we don't choose aren't eligible
+7. Do the same as above where we explain how much excess value we've identified, and how much that's worth,
+  except do it (as well as the above stuff) in a table.
+8. Clean everything up and edit  

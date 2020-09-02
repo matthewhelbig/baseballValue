@@ -1,10 +1,17 @@
 library(dplyr)
 library(data.table)
 library(janitor)
+library(car)
 
+##Create copy of data table to play with
 test2 <- Batting_Value_Salary
 
+#COLLINEARITY TEST HERE
+test_offensive_fit <- lm(WAR_Off ~ BB_percentage + SO_percentage + ISO + OPS, data = test2)
+summ(test_offensive_fit)
+car::vif(test_offensive_fit)
 
+#THESE ARE THE COMPONENTS THAT WILL MAKE UP THE DIFFERENCE SCORE
 pre_diff_score_subset <- pre_breakout%>%
                         select(name_common, PA, AB, H, X2B, X3B, HR, BB, SO, SF, HBP, SO_plus, BB_plus)
 View(pre_diff_score_subset)
@@ -47,10 +54,6 @@ diff_score_subset$slugging_percentage <- round(test_SLG, digits = 3)
 ##ISO
 diff_score_subset$ISO <- (diff_score_subset$slugging_percentage) - (diff_score_subset$batting_average)
 
-
-#The last thing we'll do before getting back to our markdown document and actually make these changes is work on our
-#difference score number.
-
 #Need to put just the Total in a different subset to make the difference score stuff
 total_sub <- subset(diff_score_subset, name_common == "Total")
 View(total_sub)
@@ -83,6 +86,9 @@ eleven_to_fifteen <- subset(test2, 2010 < yearID & yearID < 2016)
 #Subset again so it's just players older than 25 making under $3 million
 Older_than_25 <- subset(eleven_to_fifteen, salary < 3000000 & age > 25 & excess_value_plus < 100)
 
+View(Older_than_25)
+
+#EXPLAIN WHY WE"RE PICKING THESE GUYS
 pre_breakout_two <- Older_than_25[ which(Older_than_25$AutoNum == 3785 | 
                                            Older_than_25$AutoNum == 3715 |
                                            Older_than_25$AutoNum == 5242 |
@@ -99,6 +105,4 @@ post_breakout_two <- Batting_Value_Salary[ which(Batting_Value_Salary$AutoNum ==
 ), ]
 View(post_breakout_two)
 
-#End of day 5/18. I changed up the metric for finding players a bit, and everything has been updated in this R document. I
-#just need to move all the analysis from the R document here to the R Markdown, and then the analysis is done. Then I just
-#need to edit the paper itself.
+#End of day 9/1. I had to go through and figure out what it was that I last did. 
