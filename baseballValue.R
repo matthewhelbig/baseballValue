@@ -6,59 +6,8 @@ library(car)
 ##Create copy of data table to play with
 test2 <- Batting_Value_Salary
 
-#COLLINEARITY TEST HERE
-test_offensive_fit <- lm(WAR_Off ~ BB_percentage + SO_percentage + ISO + OPS, data = test2)
-summ(test_offensive_fit)
-car::vif(test_offensive_fit)
-
-#THESE ARE THE COMPONENTS THAT WILL MAKE UP THE DIFFERENCE SCORE
-pre_diff_score_subset <- pre_breakout%>%
-                        select(name_common, PA, AB, H, X2B, X3B, HR, BB, SO, SF, HBP, SO_plus, BB_plus)
-View(pre_diff_score_subset)
-
-#Create our Adjusted SO+ and BB+ so we can properly average these totals.
-pre_diff_score_subset$adj_SO_plus <- pre_diff_score_subset$PA * pre_diff_score_subset$SO_plus
-pre_diff_score_subset$adj_BB_plus <- pre_diff_score_subset$PA * pre_diff_score_subset$BB_plus
-
-#Now we create a new row in our data frame that is a sum of all the totals for each of the players
-#Need the "janitor" library for this.
-#library(janitor)
-diff_score_subset <- pre_diff_score_subset %>%
-  adorn_totals("row")
-View(diff_score_subset)
-
-#Now create our variables in our dataset again
-
-#True SO+ and BB+
-test_SO_plus <- diff_score_subset$adj_SO_plus / diff_score_subset$PA
-diff_score_subset$True_SO_plus <- round(test_SO_plus, digits = 2)
-
-test_BB_plus <- diff_score_subset$adj_BB_plus / diff_score_subset$PA
-diff_score_subset$True_BB_plus <- round(test_BB_plus, digits = 2)
-
-##Batting average
-test_BA <- diff_score_subset$H / diff_score_subset$AB
-diff_score_subset$batting_average <- round(test_BA, digits = 3)
-
-##On-base-percentage
-test_OBP <- (diff_score_subset$H + diff_score_subset$BB + diff_score_subset$HBP) / 
-  (diff_score_subset$AB + diff_score_subset$BB + diff_score_subset$HBP + diff_score_subset$SF)
-diff_score_subset$on_base_percentage <- round(test_OBP, digits = 3)
-
-##Slugging-percentage
-test_SLG <- ((diff_score_subset$H - diff_score_subset$X2B - diff_score_subset$X3B - diff_score_subset$HR) + 
-               (diff_score_subset$X2B * 2) + (diff_score_subset$X3B * 3) + (diff_score_subset$HR * 4))/
-    (diff_score_subset$AB)
-diff_score_subset$slugging_percentage <- round(test_SLG, digits = 3)
-
-##ISO
-diff_score_subset$ISO <- (diff_score_subset$slugging_percentage) - (diff_score_subset$batting_average)
-
-#Need to put just the Total in a different subset to make the difference score stuff
-total_sub <- subset(diff_score_subset, name_common == "Total")
-View(total_sub)
-
-#We've got our difference score working in our pre-breakout players.
+#We've got our difference score working in our pre-breakout players. (I don't think we need this, I think it was just a test
+#to see if the difference score would work.)
 
 temp_DiffSc <- ((total_sub$True_BB_plus - diff_score_subset$True_BB_plus)/total_sub$True_BB_plus) +
   ((total_sub$True_SO_plus - diff_score_subset$True_SO_plus)/total_sub$True_SO_plus) +
