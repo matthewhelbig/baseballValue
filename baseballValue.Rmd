@@ -739,14 +739,77 @@ View(total_sub)
 
 ##Creating our difference score formula
 
+In order to identify which players are best represented by our determinative statistics, we can develop a difference score formula. A player with a score closer to 0 will be closer to the average for our chosen statistics and would theoretically be a player identified by the model as an undervalued asset. It looks as follows:
+```{r}
+temp_DiffSc <- ((total_sub$True_BB_plus - diff_score_subset$True_BB_plus)/total_sub$True_BB_plus) +
+  ((total_sub$True_SO_plus - diff_score_subset$True_SO_plus)/total_sub$True_SO_plus) +
+  ((total_sub$ISO - diff_score_subset$ISO)/total_sub$ISO) +
+  ((total_sub$batting_average - diff_score_subset$batting_average)/total_sub$batting_average) +
+  ((total_sub$on_base_percentage - diff_score_subset$on_base_percentage)/total_sub$on_base_percentage) +
+  ((total_sub$slugging_percentage - diff_score_subset$slugging_percentage)/total_sub$slugging_percentage)
+```
+
+Now that we have the formula down, we can apply that formula to our data frame.
+
+```{r}
+temp_DiffSc2 <- ((total_sub$True_BB_plus - Batting_Value_Salary$BB_plus)/total_sub$True_BB_plus) +
+  ((total_sub$True_SO_plus - Batting_Value_Salary$SO_plus)/total_sub$True_SO_plus) +
+  ((total_sub$ISO - Batting_Value_Salary$ISO)/total_sub$ISO) +
+  ((total_sub$batting_average - Batting_Value_Salary$batting_average)/total_sub$batting_average) +
+  ((total_sub$on_base_percentage - Batting_Value_Salary$on_base_percentage)/total_sub$on_base_percentage) +
+  ((total_sub$slugging_percentage - Batting_Value_Salary$slugging_percentage)/total_sub$slugging_percentage)
+
+Batting_Value_Salary$DiffSc <- abs(temp_DiffSc2 * 100)
+```
+
+Once our formula who has been applied to our dataframe, we'll need to subset the data to only include the explanatory years (2011 to 2015) and only the players we're interested in identifying:
+
+```{r}
+eleven_to_fifteen <- subset(Batting_Value_Salary, 2010 < yearID & yearID < 2016)
+Older_than_25 <- subset(eleven_to_fifteen, salary < 3000000 & age > 25 & excess_value_plus < 100)
+View(Older_than_25)
+```
+
+From this, we've identified 602 players that meet our criteria, however some additional narrowing down needs to take place to avoid players who have characteristics that cause them to not be eligible. Instances would include too small of a sample size or not playing the season after our explanatory year.
+
+The first 5 players that meet our full criteria are as follows:
+```{r}
+pre_breakout_two <- Older_than_25[ which(Older_than_25$AutoNum == 3785 | 
+                                           Older_than_25$AutoNum == 3715 |
+                                           Older_than_25$AutoNum == 5242 |
+                                           Older_than_25$AutoNum == 3243 |
+                                           Older_than_25$AutoNum == 2218
+),]
+View(pre_breakout_two)
+```
+
+Now that we've seen their pre-breakout stats, we can take a look at their stats the next season.
+
+```{r}
+post_breakout_two <- Batting_Value_Salary[ which(Batting_Value_Salary$AutoNum == 4155 | 
+                                                   Batting_Value_Salary$AutoNum == 4090 |
+                                                   Batting_Value_Salary$AutoNum == 5433 |
+                                                   Batting_Value_Salary$AutoNum == 3630 |
+                                                   Batting_Value_Salary$AutoNum == 2581
+), ]
+View(post_breakout_two)
+```
+
+
+In order to see how well our model worked, we can use the same criteria that we used for the players we built our model with. We'll take the mean excess value before breakout and then compare it to the excess value after the players break out. 
+```{r}
+mean(pre_breakout_two$excess_value_plus)
+mean(post_breakout_two$excess_value_plus)
+
+mean(post_breakout_two$excess_value_plus) / mean(pre_breakout_two$excess_value_plus)
+```
+
+
 **Notes to self**
 
 On 9/3, we'll want to do the following things:
 
-4. Do the difference scores
-5. Subset by year and age
-6. Identify which players the model chose, and why the ones we don't choose aren't eligible
-7. Do the same as above where we explain how much excess value we've identified, and how much that's worth,
-  except do it (as well as the above stuff) in a table.
+1. Need to display the pre-breakout and post-breakout average stats in a table (line 785 for pre and line 797 for post)
+2. Create a third table that shows the improvement between post-breakout and pre-breakout
 8. Clean everything up and edit
 9. Create R file that just has the code (with comments) without any of the R Markdown stuff
