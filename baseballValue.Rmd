@@ -780,7 +780,18 @@ pre_breakout_two <- Older_than_25[ which(Older_than_25$AutoNum == 3785 |
                                            Older_than_25$AutoNum == 3243 |
                                            Older_than_25$AutoNum == 2218
 ),]
-View(pre_breakout_two)
+head(pre_breakout_two[,1:7])
+```
+
+```{r, echo = FALSE}
+mean(pre_breakout_two$DiffSc)
+```
+These selected players have an average difference score of 5, which indicates that their statistics are very similar to the players upon whom we built the model.
+
+**Selected stats from season pre-breakout**
+```{r}
+test3 <- select(pre_breakout_two, name_common, salary, excess_value, excess_value_plus, DiffSc)
+View(test3)
 ```
 
 Now that we've seen their pre-breakout stats, we can take a look at their stats the next season.
@@ -792,7 +803,7 @@ post_breakout_two <- Batting_Value_Salary[ which(Batting_Value_Salary$AutoNum ==
                                                    Batting_Value_Salary$AutoNum == 3630 |
                                                    Batting_Value_Salary$AutoNum == 2581
 ), ]
-View(post_breakout_two)
+head(post_breakout_two[,1:7])
 ```
 
 
@@ -805,11 +816,12 @@ mean(post_breakout_two$excess_value_plus) / mean(pre_breakout_two$excess_value_p
 ```
 
 
-**Notes to self*
+**Notes to self**
 
-On 9/3, we'll want to do the following things:
+On 11/3, we'll want to do the following things:
 
-1. Need to display the pre-breakout and post-breakout average stats in a table (line 785 for pre and line 797 for post)
+1. 1. Display appropriate pre-breakout and post-breakout stats for the players we chose. Maybe append the total to the bottom like we did starting on line 688. Then compare the pre-breakout totals to the post-breakout totals and show how much value our model extracted (could be good to show the same pre-breakout and post-breakout stuff for the players that comprise our model too)
 2. Create a third table that shows the improvement between post-breakout and pre-breakout
-8. Clean everything up and edit
-9. Create R file that just has the code (with comments) without any of the R Markdown stuff
+3. Clean everything up and edit
+4. Create R file that just has the code (with comments) without any of the R Markdown stuff
+
