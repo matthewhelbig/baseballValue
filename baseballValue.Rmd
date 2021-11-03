@@ -805,7 +805,7 @@ mean(post_breakout_two$excess_value_plus) / mean(pre_breakout_two$excess_value_p
 ```
 
 
-**Notes to self**
+**Notes to self*
 
 On 9/3, we'll want to do the following things:
 
